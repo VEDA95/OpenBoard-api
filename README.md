@@ -1,9 +1,13 @@
-<img alt="Open Board Logo" style="display: block; margin: 16px auto 0 auto;" height="128" src="https://raw.githubusercontent.com/VEDA95/OpenBoard-API/main/docs/openboard_logo.png" width="128" />
-<h1 style="text-align: center;">Open Board REST API</h1>
-<h2 style="text-align: center;">
+<p align="center">
+    <picture>
+        <img alt="Open Board Logo" height="128" src="https://raw.githubusercontent.com/VEDA95/OpenBoard-API/main/docs/openboard_logo.png" width="128" />
+    </picture>
+</p>
+<h1 align="center">
+    Open Board REST API<br>
     An Open Source REST API Backend<br>
     For Kanban Boards
-</h2>
+</h1>
 
 ## Overview
 This REST API backend for the Open Board project is built using open source tools. The Open Source project serves as an alternative to both
