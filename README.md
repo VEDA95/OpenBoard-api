@@ -1,7 +1,5 @@
 <p align="center">
-    <picture>
-        <img alt="Open Board Logo" height="128" src="https://raw.githubusercontent.com/VEDA95/OpenBoard-API/main/docs/openboard_logo.png" width="128" />
-    </picture>
+    <img alt="Open Board Logo" height="128" src="https://raw.githubusercontent.com/VEDA95/OpenBoard-API/main/docs/openboard_logo.png" width="128" />
 </p>
 <h1 align="center">
     Open Board REST API<br>
