@@ -1,0 +1,17 @@
+services:
+  db:
+    image: postgres
+    container_name: dev-postgres
+
+    ports:
+      - "5432:5432"
+
+    volumes:
+      - ./data/postgres:/var/lib/postgresql/data
+
+    environment:
+      - POSTGRES_PASSWORD=GNX-0093
+      - POSTGRES_USER=Testuser
+      - POSTGRES_DB=open_board_api
+
+    restart: always

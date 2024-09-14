@@ -21,11 +21,9 @@
 go.work
 go.work.sum
 
-# env file
-.env
 
 .idea
 .vscode
-.docker/dev/data
+deployment/dev/data
 builds/
 
