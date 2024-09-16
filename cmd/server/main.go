@@ -16,13 +16,13 @@ func main() {
 		log.Panic(err)
 	}
 
-	if err := db.InitialDBConnection(); err != nil {
+	if err := db.InitializeDBInstance(); err != nil {
 		log.Panic(err)
 	}
 
 	app := fiber.New()
 
-	defer db.DBInstance.Close()
+	defer db.Instance.Close()
 	app.Get("/", routes.HelloWorld)
 
 	if err := app.Listen(fmt.Sprintf("%s:%s", conf.Host, conf.Port)); err != nil {

@@ -31,9 +31,9 @@ type DB struct {
 	Dialect    *goqu.Database
 }
 
-var DBInstance DB
+var Instance DB
 
-func InitialDBConnection() error {
+func InitializeDBInstance() error {
 	dbUrl := os.Getenv("DB_URL")
 
 	if len(dbUrl) == 0 {
@@ -46,7 +46,7 @@ func InitialDBConnection() error {
 		return err
 	}
 
-	DBInstance = DB{
+	Instance = DB{
 		connection: db,
 		Dialect:    goqu.Dialect("postgres").DB(db),
 	}
