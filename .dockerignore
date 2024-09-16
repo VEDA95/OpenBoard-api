@@ -1,0 +1,17 @@
+*.out
+*.test
+go.work
+go.work.sum
+.idea
+.vscode
+deployment
+cmd
+docs
+internal
+.git
+.gitignore
+go.mod
+go.sum
+LICENSE
+README.md
+env/development.env
