@@ -10,7 +10,6 @@ CREATE TABLE "open_board_user" (
     "last_name" VARCHAR(255),
     "dark_mode" BOOLEAN NOT NULL DEFAULT (false),
     "hashed_password" TEXT,
-    "password_salt" VARCHAR(255),
     "date_created" TIMESTAMP NOT NULL DEFAULT (now()),
     "date_updated" TIMESTAMP,
     "last_login" TIMESTAMP,
@@ -26,8 +25,8 @@ CREATE TABLE "open_board_user_session" (
    "date_updated" TIMESTAMP,
    "expires_on" TIMESTAMP NOT NULL,
    "remember_me" BOOLEAN NOT NULL DEFAULT (false),
-   "access_token" TEXT UNIQUE NOT NULL,
-   "refresh_token" TEXT,
+   "access_token" TEXT UNIQUE,
+   "refresh_token" TEXT UNIQUE,
    "ip_address" VARCHAR(255) NOT NULL,
    "user_agent" VARCHAR(255) NOT NULL
 );
@@ -298,3 +297,6 @@ ALTER TABLE "open_board_board_list_card_attachments" ADD FOREIGN KEY ("file_id")
 ALTER TABLE "open_board_board_list_card_checklist_item" ADD FOREIGN KEY ("card_id") REFERENCES "open_board_board_list_card" ("id");
 ALTER TABLE "open_board_board_list_card_card_activity" ADD FOREIGN KEY ("card_id") REFERENCES "open_board_board_list_card" ("id");
 ALTER TABLE "open_board_board_list_card_card_activity" ADD FOREIGN KEY ("user_id") REFERENCES "open_board_user" ("id");
+CREATE UNIQUE INDEX singleton_auth ON "open_board_auth_settings" ((true));
+CREATE UNIQUE INDEX singleton_general ON "open_board_general_settings" ((true));
+CREATE UNIQUE INDEX singleton_notifications ON "open_board_notification_settings" ((true));

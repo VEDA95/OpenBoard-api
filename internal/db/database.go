@@ -6,9 +6,7 @@ import (
 	"fmt"
 	"github.com/doug-martin/goqu/v9"
 	_ "github.com/doug-martin/goqu/v9/dialect/postgres"
-	"github.com/goccy/go-json"
 	_ "github.com/jackc/pgx/v5/stdlib"
-	"log"
 	"os"
 	"regexp"
 )
@@ -110,22 +108,6 @@ func ExtractSQLQueryString(query interface{}) (string, []interface{}, error) {
 	}
 
 	return output, args, nil
-}
-
-func ConvertResult[E interface{}, T interface{}](result E) T {
-	marshalResult, err := json.Marshal(result)
-
-	if err != nil {
-		log.Panic(err)
-	}
-
-	var output T
-
-	if err := json.Unmarshal(marshalResult, &output); err != nil {
-		log.Panic(err)
-	}
-
-	return output
 }
 
 func (db *DB) Close() error {
