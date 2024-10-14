@@ -28,9 +28,7 @@ func InitializeSettingsInstance(names []string) {
 func GetSettingsInstance(name string) SettingsInterface {
 	switch name {
 	case "auth":
-		authSettings := AuthSettings{}
-
-		return authSettings
+		return &AuthSettings{}
 	}
 
 	return nil
