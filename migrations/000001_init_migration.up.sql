@@ -1,7 +1,7 @@
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 CREATE TABLE "open_board_user" (
-    "id" UUID PRIMARY KEY,
+    "id" UUID PRIMARY KEY DEFAULT (uuid_generate_v4()),
     "external_provider_id" UUID,
     "thumbnail" UUID,
     "username" VARCHAR(255) UNIQUE NOT NULL,
@@ -19,7 +19,7 @@ CREATE TABLE "open_board_user" (
 );
 
 CREATE TABLE "open_board_user_session" (
-   "id" UUID PRIMARY KEY,
+   "id" UUID PRIMARY KEY DEFAULT (uuid_generate_v4()),
    "user_id" UUID NOT NULL,
    "date_created" TIMESTAMP NOT NULL DEFAULT (now()),
    "date_updated" TIMESTAMP,
@@ -32,7 +32,7 @@ CREATE TABLE "open_board_user_session" (
 );
 
 CREATE TABLE "open_board_external_auth_provider" (
-     "id" UUID PRIMARY KEY,
+     "id" UUID PRIMARY KEY DEFAULT (uuid_generate_v4()),
      "name" VARCHAR(255) NOT NULL,
      "date_created" TIMESTAMP NOT NULL DEFAULT (now()),
      "date_updated" TIMESTAMP,
@@ -49,17 +49,17 @@ CREATE TABLE "open_board_external_auth_provider" (
 );
 
 CREATE TABLE "open_board_role" (
-   "id" UUID PRIMARY KEY,
+   "id" UUID PRIMARY KEY DEFAULT (uuid_generate_v4()),
    "name" VARCHAR(255) UNIQUE NOT NULL
 );
 
 CREATE TABLE "open_board_role_permission" (
-  "id" UUID PRIMARY KEY,
+  "id" UUID PRIMARY KEY DEFAULT (uuid_generate_v4()),
   "path" VARCHAR(255) NOT NULL
 );
 
 CREATE TABLE "open_board_multi_auth_method" (
-    "id" UUID PRIMARY KEY,
+    "id" UUID PRIMARY KEY DEFAULT (uuid_generate_v4()),
     "user_id" UUID NOT NULL,
     "date_created" TIMESTAMP NOT NULL DEFAULT (now()),
     "date_updated" TIMESTAMP,
@@ -69,14 +69,14 @@ CREATE TABLE "open_board_multi_auth_method" (
 );
 
 CREATE TABLE "open_board_user_password_reset_token" (
-    "id" UUID PRIMARY KEY,
+    "id" TEXT PRIMARY KEY,
     "user_id" UUID NOT NULL,
     "date_created" TIMESTAMP NOT NULL DEFAULT (now()),
     "expires_on" TIMESTAMP NOT NULL
 );
 
 CREATE TABLE "open_board_user_email_verification_token" (
-    "id" UUID PRIMARY KEY,
+    "id" TEXT PRIMARY KEY,
     "user_id" UUID NOT NULL,
     "date_created" TIMESTAMP NOT NULL DEFAULT (now()),
     "expires_on" TIMESTAMP NOT NULL
@@ -109,7 +109,7 @@ CREATE TABLE "open_board_auth_settings" (
 );
 
 CREATE TABLE "open_board_file_upload" (
-    "id" UUID PRIMARY KEY,
+    "id" UUID PRIMARY KEY DEFAULT (uuid_generate_v4()),
     "user_id" UUID NOT NULL,
     "name" VARCHAR(255) NOT NULL,
     "date_created" TIMESTAMP NOT NULL DEFAULT (now()),
@@ -120,7 +120,7 @@ CREATE TABLE "open_board_file_upload" (
 );
 
 CREATE TABLE "open_board_workspace" (
-    "id" UUID PRIMARY KEY,
+    "id" UUID PRIMARY KEY DEFAULT (uuid_generate_v4()),
     "date_created" TIMESTAMP NOT NULL DEFAULT (now()),
     "date_updated" TIMESTAMP,
     "name" VARCHAR(255) NOT NULL,
@@ -128,7 +128,7 @@ CREATE TABLE "open_board_workspace" (
 );
 
 CREATE TABLE "open_board_board" (
-    "id" UUID PRIMARY KEY,
+    "id" UUID PRIMARY KEY DEFAULT (uuid_generate_v4()),
     "user_id" UUID NOT NULL,
     "workspace_id" UUID,
     "name" VARCHAR(255) NOT NULL,
@@ -138,7 +138,7 @@ CREATE TABLE "open_board_board" (
 );
 
 CREATE TABLE "open_board_board_label" (
-    "id" UUID PRIMARY KEY,
+    "id" UUID PRIMARY KEY DEFAULT (uuid_generate_v4()),
     "board_id" UUID NOT NULL,
     "date_created" TIMESTAMP NOT NULL DEFAULT (now()),
     "date_updated" TIMESTAMP,
@@ -147,7 +147,7 @@ CREATE TABLE "open_board_board_label" (
 );
 
 CREATE TABLE "open_board_board_field" (
-    "id" UUID PRIMARY KEY,
+    "id" UUID PRIMARY KEY DEFAULT (uuid_generate_v4()),
     "board_id" UUID NOT NULL,
     "date_created" TIMESTAMP NOT NULL DEFAULT (now()),
     "date_updated" TIMESTAMP,
@@ -157,7 +157,7 @@ CREATE TABLE "open_board_board_field" (
 );
 
 CREATE TABLE "open_board_board_list" (
-    "id" UUID PRIMARY KEY,
+    "id" UUID PRIMARY KEY DEFAULT (uuid_generate_v4()),
     "board_id" UUID NOT NULL,
     "name" VARCHAR(255) NOT NULL,
     "color" VARCHAR(7),
@@ -165,7 +165,7 @@ CREATE TABLE "open_board_board_list" (
 );
 
 CREATE TABLE "open_board_board_list_card" (
-    "id" UUID PRIMARY KEY,
+    "id" UUID PRIMARY KEY DEFAULT (uuid_generate_v4()),
     "list_id" UUID NOT NULL,
     "date_created" TIMESTAMP NOT NULL DEFAULT (now()),
     "reminder_date" TIMESTAMP,
@@ -179,7 +179,7 @@ CREATE TABLE "open_board_board_list_card" (
 );
 
 CREATE TABLE "open_board_board_list_card_comment" (
-    "id" UUID PRIMARY KEY,
+    "id" UUID PRIMARY KEY DEFAULT (uuid_generate_v4()),
     "user_id" UUID NOT NULL,
     "card_id" UUID NOT NULL,
     "date_created" TIMESTAMP NOT NULL DEFAULT (now()),
@@ -188,7 +188,7 @@ CREATE TABLE "open_board_board_list_card_comment" (
 );
 
 CREATE TABLE "open_board_board_list_card_checklist_item" (
-    "id" UUID PRIMARY KEY,
+    "id" UUID PRIMARY KEY DEFAULT (uuid_generate_v4()),
     "card_id" UUID NOT NULL,
     "date_created" TIMESTAMP NOT NULL DEFAULT (now()),
     "date_updated" TIMESTAMP,
@@ -198,7 +198,7 @@ CREATE TABLE "open_board_board_list_card_checklist_item" (
 );
 
 CREATE TABLE "open_board_board_list_card_card_activity" (
-    "id" UUID PRIMARY KEY,
+    "id" UUID PRIMARY KEY DEFAULT (uuid_generate_v4()),
     "card_id" UUID NOT NULL,
     "user_id" UUID NOT NULL,
     "date_created" TIMESTAMP NOT NULL DEFAULT (now()),
