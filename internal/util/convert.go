@@ -2,7 +2,7 @@ package util
 
 import "github.com/goccy/go-json"
 
-func ConvertType[E interface{}, T interface{}](result E) (*T, error) {
+func ConvertType[T interface{}, E interface{}](result E) (*T, error) {
 	marshalResult, err := json.Marshal(result)
 
 	if err != nil {
