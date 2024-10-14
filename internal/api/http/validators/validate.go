@@ -3,10 +3,10 @@ package validators
 import "github.com/go-playground/validator/v10"
 
 type ErrorResponse struct {
-	Error       bool
-	FailedField string
-	Tag         string
-	Value       interface{}
+	FailedField string      `json:"failed_field"`
+	Tag         string      `json:"tag"`
+	Value       interface{} `json:"value"`
+	ErrValue    string      `json:"err_value"`
 }
 
 type Validator struct {
@@ -39,7 +39,7 @@ func (validate *Validator) Validate(data interface{}) []*ErrorResponse {
 			FailedField: err.Field(),
 			Tag:         err.Tag(),
 			Value:       err.Value(),
-			Error:       true,
+			ErrValue:    err.Error(),
 		}
 		validationErrors = append(validationErrors, elem)
 	}

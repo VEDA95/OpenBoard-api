@@ -20,7 +20,7 @@ func VerifyPassword(hash string, password string) (bool, error) {
 		return false, errors.New("password verification failed")
 	}
 
-	match, err := argon2id.ComparePasswordAndHash(hash, password)
+	match, err := argon2id.ComparePasswordAndHash(password, hash)
 
 	if err != nil {
 		return false, err

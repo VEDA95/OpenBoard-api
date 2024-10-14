@@ -3,7 +3,8 @@ package auth
 type ProviderInterface interface {
 	Login(payload ProviderPayload) (*ProviderAuthResult, error)
 	Logout(payload ProviderPayload) error
-	GetUser(id string) (*User, error)
+	GetUser(payload ProviderPayload) (*User, error)
+	GetUsers(payload ProviderPayload) (*[]User, error)
 }
 
 type ProviderPayload map[string]interface{}
@@ -24,12 +25,12 @@ type ProvidersInstance struct {
 	providers map[string]*ProviderInterface
 }
 
-var Providers *ProvidersInstance
+var Instance *ProvidersInstance
 
 func GetProviderInstance(driver string, config interface{}) ProviderInterface {
 	switch driver {
 	case "local":
-		return LocalAuthProvider{Config: config}
+		return &LocalAuthProvider{Config: config}
 	}
 	return nil
 }
@@ -41,9 +42,9 @@ func NewProvidersInstance() *ProvidersInstance {
 }
 
 func InitializeProvidersInstance(providerEntries []ProviderRegistrationEntry) {
-	Providers = NewProvidersInstance()
+	Instance = NewProvidersInstance()
 
-	Providers.RegisterProviders(providerEntries)
+	Instance.RegisterProviders(providerEntries)
 }
 
 func (providersInstance *ProvidersInstance) RegisterProviders(providerEntries []ProviderRegistrationEntry) {

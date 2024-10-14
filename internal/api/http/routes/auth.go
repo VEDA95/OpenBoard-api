@@ -15,26 +15,18 @@ func LocalLogin(context *fiber.Ctx) error {
 		return err
 	}
 
-	errs := validators.Instance.Validate(validatorData)
-
-	if errs != nil {
-		return nil
-	}
-
-	provider := auth.Providers.GetProvider("local")
-	localProvider, err := util.ConvertType[*auth.ProviderInterface, auth.LocalAuthProvider](provider)
-
-	if err != nil {
-		return err
+	if errs := validators.Instance.Validate(validatorData); errs != nil {
+		return util.CreateValidationError(errs)
 	}
 
 	authPayload := auth.ProviderPayload{
-		"username":    validatorData.Username,
+		"identity":    validatorData.Username,
 		"password":    validatorData.Password,
 		"remember_me": validatorData.RememberMe,
 		"user_agent":  string(context.Request().Header.UserAgent()[:]),
 		"ip_address":  context.IP(),
 	}
+	localProvider := *auth.Instance.GetProvider("local")
 	authResults, err := localProvider.Login(authPayload)
 
 	if err != nil {
@@ -42,10 +34,11 @@ func LocalLogin(context *fiber.Ctx) error {
 	}
 
 	if validatorData.ReturnType == "token" {
-		return context.JSON(responses.OKResponse(200, authResults))
+		return util.JSONResponse(context, fiber.StatusOK, responses.OKResponse(fiber.StatusOK, authResults))
 	}
 
 	if validatorData.ReturnType == "session" {
+		context.Status(fiber.StatusOK)
 		context.Cookie(&fiber.Cookie{
 			Name:     "open_board_session",
 			Value:    authResults.AccessToken,
