@@ -6,65 +6,54 @@ import (
 )
 
 type AuthSettings struct {
-	AccessTokenLifetime      int64
-	RefreshTokenLifetime     int64
-	RefreshTokenIdleLifetime int64
+	AccessTokenLifetime      int64 `db:"access_token_lifetime"`
+	RefreshTokenLifetime     int64 `db:"refresh_token_lifetime"`
+	RefreshTokenIdleLifetime int64 `db:"refresh_token_idle_lifetime"`
 }
 
-func (authSettings AuthSettings) Load() error {
-	authSettingQuery := db.Instance.Dialect.Select("access_token_lifetime", "refresh_token_lifetime", "refresh_token_idle_lifetime").From("open_board_auth_settings")
-	authSettingsQueryResults, err := db.Instance.ExecQuery(authSettingQuery)
+func (authSettings *AuthSettings) Load() error {
+	authSettingQuery := db.Instance.Select("*").From("open_board_auth_settings")
+	exists, err := authSettingQuery.ScanStruct(authSettings)
 
 	if err != nil {
 		return err
 	}
 
-	var authSettingData db.ExtractedRow
-
-	if authSettingsQueryResults.Size == 0 {
-		createAuthSettingsQuery := db.Instance.Dialect.Insert("open_board_auth_settings").Returning(
-			"access_token_lifetime",
-			"refresh_token_lifetime",
-			"refresh_token_idle_lifetime",
-		).Rows(
+	if !exists {
+		accessTokenLifetime := 3600
+		refreshTokenLifetime := 7200
+		refreshTokenIdleLifetime := 1209600
+		createAuthSettingsQuery := db.Instance.Insert("open_board_auth_settings").Rows(
 			goqu.Record{
-				"access_token_lifetime":       3600,
-				"refresh_token_lifetime":      7200,
-				"refresh_token_idle_lifetime": 1209600,
+				"access_token_lifetime":       accessTokenLifetime,
+				"refresh_token_lifetime":      refreshTokenLifetime,
+				"refresh_token_idle_lifetime": refreshTokenIdleLifetime,
 			},
-		)
-		newAuthSettingResults, err := db.Instance.ExecSingleQuery(createAuthSettingsQuery, []string{
-			"access_token_lifetime",
-			"refresh_token_lifetime",
-			"refresh_token_idle_lifetime",
-		})
+		).Executor()
 
-		if err != nil {
+		if _, err := createAuthSettingsQuery.Exec(); err != nil {
 			return err
 		}
 
-		authSettingData = newAuthSettingResults.Row
+		authSettings.AccessTokenLifetime = int64(accessTokenLifetime)
+		authSettings.RefreshTokenLifetime = int64(refreshTokenLifetime)
+		authSettings.RefreshTokenIdleLifetime = int64(refreshTokenIdleLifetime)
 
-	} else {
-		authSettingData = authSettingsQueryResults.Rows[0]
 	}
 
-	authSettings.AccessTokenLifetime = authSettingData["access_token_lifetime"].(int64)
-	authSettings.RefreshTokenLifetime = authSettingData["refresh_token_lifetime"].(int64)
-	authSettings.RefreshTokenIdleLifetime = authSettingData["refresh_token_lifetime"].(int64)
 	return nil
 }
 
-func (authSettings AuthSettings) Save() error {
-	authSettingsUpdateQuery := db.Instance.Dialect.Update("open_board_auth_settings").Set(
+func (authSettings *AuthSettings) Save() error {
+	authSettingsUpdateQuery := db.Instance.Update("open_board_auth_settings").Set(
 		goqu.Record{
 			"access_token_lifetime":       authSettings.AccessTokenLifetime,
 			"refresh_token_lifetime":      authSettings.RefreshTokenLifetime,
 			"refresh_token_idle_lifetime": authSettings.RefreshTokenIdleLifetime,
 		},
-	)
+	).Executor()
 
-	if _, err := db.Instance.ExecQuery(authSettingsUpdateQuery); err != nil {
+	if _, err := authSettingsUpdateQuery.Exec(); err != nil {
 		return err
 	}
 
