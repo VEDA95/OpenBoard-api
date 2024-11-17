@@ -153,6 +153,65 @@ func SelectMFAMethod(context *fiber.Ctx) error {
 		return util.CreateValidationError(errs)
 	}
 
+	settingsInterface := *settings.Instance.GetSettings("auth")
+	authSettings := settingsInterface.(*settings.AuthSettings)
+
+	if validatorData.Skip && !authSettings.ForceMultiAuthEnabled {
+		sessionToken, err := auth.CreateSessionToken()
+
+		if err != nil {
+			return err
+		}
+
+		transaction, err := db.Instance.Begin()
+
+		if err != nil {
+			return err
+		}
+
+		now := time.Now()
+		sessionQuery := transaction.From("open_board_user_session").Prepared(true).
+			Insert().
+			Rows(goqu.Record{
+				"user_id":      userId,
+				"expires_on":   now.Local().Add(time.Duration(authSettings.AccessTokenLifetime)),
+				"access_token": sessionToken,
+				"user_agent":   string(context.Request().Header.UserAgent()[:]),
+				"ip_address":   context.IP(),
+			}).
+			Executor()
+		updateUserQuery := transaction.From("open_board_user").Prepared(true).
+			Where(goqu.Ex{"id": userId}).
+			Update().
+			Set(goqu.Record{"last_login": now}).
+			Executor()
+
+		if _, err := sessionQuery.Exec(); err != nil {
+			if err := transaction.Rollback(); err != nil {
+				return err
+			}
+
+			return err
+		}
+
+		if _, err := updateUserQuery.Exec(); err != nil {
+			if err := transaction.Rollback(); err != nil {
+				return err
+			}
+
+			return err
+		}
+
+		if err := transaction.Commit(); err != nil {
+			return err
+		}
+
+		return util.JSONResponse(context, fiber.StatusOK, responses.OKResponse(fiber.StatusOK, auth.ProviderAuthResult{
+			AccessToken: sessionToken,
+			UserId:      userId,
+		}))
+	}
+
 	var methodId string
 	_, dbErr2 := db.Instance.From("open_board_multi_auth_method").Prepared(true).
 		Select("id").
@@ -167,13 +226,12 @@ func SelectMFAMethod(context *fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusNotFound, "MFA method does not exist for user")
 	}
 
-	updateChallengeQuery := db.Instance.From("open_board_multi_auth_challenge").Prepared(true).
-		Update().
-		Where(goqu.Ex{"id": token}).
-		Set(goqu.Record{"auth_method_id": methodId, "date_updated": time.Now()}).
-		Executor()
+	payload := util.Payload{
+		"auth_method_id": methodId,
+		"date_updated":   time.Now(),
+	}
 
-	if _, err := updateChallengeQuery.Exec(); err != nil {
+	if err := auth.UpdateMultiAuthChallenge(payload); err != nil {
 		return err
 	}
 

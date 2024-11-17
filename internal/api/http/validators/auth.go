@@ -8,5 +8,7 @@ type LoginValidator struct {
 }
 
 type MFASelectValidator struct {
-	MFAType string `json:"type" validate:"required,min=1,max=7,oneof=otp authenticator webauthn"`
+	MFAType    string `json:"type,omitempty" validate:"omitempty,min=1,max=7,oneof=otp authenticator webauthn"`
+	Skip       bool   `json:"skip,omitempty" validate:"omitempty,oneof=true false" default:"false"`
+	ReturnType string `json:"return_type,omitempty" validate:"omitempty,min=1,max=7,oneof=token session"`
 }
