@@ -185,6 +185,10 @@ func SelectMFAMethod(context *fiber.Ctx) error {
 			Update().
 			Set(goqu.Record{"last_login": now}).
 			Executor()
+		deleteQuery := transaction.From("open_board_multi_auth_challenge").Prepared(true).
+			Delete().
+			Where(goqu.Ex{"id": token}).
+			Executor()
 
 		if _, err := sessionQuery.Exec(); err != nil {
 			if err := transaction.Rollback(); err != nil {
@@ -195,6 +199,14 @@ func SelectMFAMethod(context *fiber.Ctx) error {
 		}
 
 		if _, err := updateUserQuery.Exec(); err != nil {
+			if err := transaction.Rollback(); err != nil {
+				return err
+			}
+
+			return err
+		}
+
+		if _, err := deleteQuery.Exec(); err != nil {
 			if err := transaction.Rollback(); err != nil {
 				return err
 			}
