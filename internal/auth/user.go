@@ -1,6 +1,10 @@
 package auth
 
-import "time"
+import (
+	"fmt"
+	"github.com/go-webauthn/webauthn/webauthn"
+	"time"
+)
 
 type User struct {
 	Id                   string     `json:"id" db:"id,omitempty"`
@@ -18,4 +22,20 @@ type User struct {
 	Enabled              bool       `json:"enabled" default:"true" db:"enabled,omitempty"`
 	EmailVerified        bool       `json:"email_verified" default:"false" db:"email_verified,omitempty"`
 	ResetPasswordOnLogin bool       `json:"reset_password_on_login" default:"false" db:"reset_password_on_login,omitempty"`
+}
+
+func (user *User) WebAuthnID() []byte {
+	return []byte(user.Id)
+}
+
+func (user *User) WebAuthnName() string {
+	return user.Username
+}
+
+func (user *User) WebAuthnDisplayName() string {
+	return fmt.Sprintf("%s %s", *user.FirstName, *user.LastName)
+}
+
+func (user *User) WebAuthnCredentials() []webauthn.Credential {
+	return []webauthn.Credential{}
 }

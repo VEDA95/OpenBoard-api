@@ -3,6 +3,7 @@ DROP TABLE IF EXISTS "open_board_user_session" CASCADE;
 DROP TABLE IF EXISTS "open_board_external_auth_provider" CASCADE;
 DROP TABLE IF EXISTS "open_board_role" CASCADE;
 DROP TABLE IF EXISTS "open_board_role_permission" CASCADE;
+DROP TABLE IF EXISTS "open_board_multi_auth_challenge" CASCADE;
 DROP TABLE IF EXISTS "open_board_multi_auth_method" CASCADE;
 DROP TABLE IF EXISTS "open_board_user_password_reset_token" CASCADE;
 DROP TABLE IF EXISTS "open_board_user_email_verification_token" CASCADE;

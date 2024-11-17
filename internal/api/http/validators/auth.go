@@ -6,3 +6,7 @@ type LoginValidator struct {
 	RememberMe bool   `json:"remember_me,omitempty" validate:"omitempty,oneof=true false"`
 	ReturnType string `json:"type" validate:"required,min=1,max=7,oneof=token session"`
 }
+
+type MFASelectValidator struct {
+	MFAType string `json:"type" validate:"required,min=1,max=7,oneof=otp authenticator webauthn"`
+}

@@ -30,7 +30,7 @@ var defaultUserColumns = []interface{}{
 
 func ShowUsers(context *fiber.Ctx) error {
 	localProvider := *auth.Instance.GetProvider("local")
-	users, err := localProvider.GetUsers(auth.ProviderPayload{})
+	users, err := localProvider.GetUsers(util.Payload{})
 
 	if err != nil {
 		return err
@@ -87,7 +87,7 @@ func CreateUser(context *fiber.Ctx) error {
 func ShowUser(context *fiber.Ctx) error {
 	userId := context.Params("id")
 	localProvider := *auth.Instance.GetProvider("local")
-	user, err := localProvider.GetUser(auth.ProviderPayload{"id": userId})
+	user, err := localProvider.GetUser(util.Payload{"id": userId})
 
 	if err != nil {
 		errMsg := err.Error()
@@ -105,7 +105,7 @@ func ShowUser(context *fiber.Ctx) error {
 func UpdateUser(context *fiber.Ctx) error {
 	userId := context.Params("id")
 	localProvider := *auth.Instance.GetProvider("local")
-	_, err := localProvider.GetUser(auth.ProviderPayload{"id": userId, "columns": []interface{}{"id"}})
+	_, err := localProvider.GetUser(util.Payload{"id": userId, "columns": []interface{}{"id"}})
 
 	if err != nil {
 		return err
@@ -165,7 +165,7 @@ func UpdateUser(context *fiber.Ctx) error {
 func DeleteUser(context *fiber.Ctx) error {
 	userId := context.Params("id")
 	localProvider := *auth.Instance.GetProvider("local")
-	_, err := localProvider.GetUser(auth.ProviderPayload{"id": userId, "columns": []interface{}{"id"}})
+	_, err := localProvider.GetUser(util.Payload{"id": userId, "columns": []interface{}{"id"}})
 
 	if err != nil {
 		return err
@@ -184,21 +184,10 @@ func DeleteUser(context *fiber.Ctx) error {
 }
 
 func Me(context *fiber.Ctx) error {
-	tokenHeader := string(context.Request().Header.Peek("Authorization")[:])
-	splitHeader := strings.Split(tokenHeader, " ")
-	var token string
+	token, err := auth.ExtractSessionToken(context, "")
 
-	if len(splitHeader) != 2 {
-		sessionCookie := context.Cookies("open_board_session")
-
-		if len(sessionCookie) == 0 {
-			return fiber.NewError(fiber.StatusUnauthorized, "invalid token")
-		}
-
-		token = sessionCookie
-
-	} else {
-		token = splitHeader[1]
+	if err != nil {
+		return err
 	}
 
 	var userId string
@@ -217,7 +206,7 @@ func Me(context *fiber.Ctx) error {
 	}
 
 	localProvider := *auth.Instance.GetProvider("local")
-	user, err := localProvider.GetUser(auth.ProviderPayload{"id": userId})
+	user, err := localProvider.GetUser(util.Payload{"id": userId})
 
 	if err != nil {
 		return err

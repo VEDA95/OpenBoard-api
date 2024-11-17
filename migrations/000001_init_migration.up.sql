@@ -58,13 +58,23 @@ CREATE TABLE "open_board_role_permission" (
   "path" VARCHAR(255) NOT NULL
 );
 
+CREATE TABLE "open_board_multi_auth_challenge" (
+    "id" TEXT PRIMARY KEY,
+    "date_created" TIMESTAMP NOT NULL DEFAULT (now()),
+    "date_updated" TIMESTAMP,
+    "expires_on" TIMESTAMP NOT NULL,
+    "auth_method_id" UUID,
+    "user_id" UUID NOT NULL,
+    "data" JSONB
+);
+
 CREATE TABLE "open_board_multi_auth_method" (
     "id" UUID PRIMARY KEY DEFAULT (uuid_generate_v4()),
     "user_id" UUID NOT NULL,
     "date_created" TIMESTAMP NOT NULL DEFAULT (now()),
     "date_updated" TIMESTAMP,
     "name" VARCHAR(255) NOT NULL,
-    "type" VARCHAR(255) NOT NULL,
+    type VARCHAR(16) NOT NULL,
     "credential_data" JSONB NOT NULL
 );
 
@@ -96,7 +106,7 @@ CREATE TABLE "open_board_notification_settings" (
     "name" VARCHAR(255),
     "email_address" VARCHAR(255),
     "use_tls" BOOLEAN,
-    "use_startls" BOOLEAN,
+    "use_starttls" BOOLEAN,
     "twilio_sid" VARCHAR(255),
     "twilio_token" TEXT,
     "twilio_sender_number" VARCHAR(255)
@@ -105,7 +115,12 @@ CREATE TABLE "open_board_notification_settings" (
 CREATE TABLE "open_board_auth_settings" (
     "access_token_lifetime" INTEGER NOT NULL,
     "refresh_token_lifetime" INTEGER NOT NULL,
-    "refresh_token_idle_lifetime" INTEGER NOT NULL
+    "refresh_token_idle_lifetime" INTEGER NOT NULL,
+    "multi_factor_auth_enabled" BOOLEAN NOT NULL,
+    "force_multi_factor_auth" BOOLEAN NOT NULL,
+    "otp_enabled" BOOLEAN NOT NULL,
+    "authenticator_enabled" BOOLEAN NOT NULL,
+    "webauthn_enabled" BOOLEAN NOT NULL
 );
 
 CREATE TABLE "open_board_file_upload" (
@@ -282,6 +297,8 @@ ALTER TABLE "open_board_user_session" ADD FOREIGN KEY ("user_id") REFERENCES "op
 ALTER TABLE "open_board_user_password_reset_token" ADD FOREIGN KEY ("user_id") REFERENCES "open_board_user" ("id");
 ALTER TABLE "open_board_user_email_verification_token" ADD FOREIGN KEY ("user_id") REFERENCES "open_board_user" ("id");
 ALTER TABLE "open_board_multi_auth_method" ADD FOREIGN KEY ("user_id") REFERENCES "open_board_user" ("id");
+ALTER TABLE "open_board_multi_auth_challenge" ADD FOREIGN KEY ("auth_method_id") REFERENCES "open_board_multi_auth_method" ("id");
+ALTER TABLE "open_board_multi_auth_challenge" ADD FOREIGN KEY ("user_id") REFERENCES "open_board_user" ("id");
 ALTER TABLE "open_board_file_upload" ADD FOREIGN KEY ("user_id") REFERENCES "open_board_user" ("id");
 ALTER TABLE "open_board_board" ADD FOREIGN KEY ("user_id") REFERENCES "open_board_user" ("id");
 ALTER TABLE "open_board_user" ADD FOREIGN KEY ("thumbnail") REFERENCES "open_board_file_upload" ("id");

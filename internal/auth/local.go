@@ -4,7 +4,9 @@ import (
 	"errors"
 	"github.com/VEDA95/OpenBoard-API/internal/db"
 	"github.com/VEDA95/OpenBoard-API/internal/settings"
+	"github.com/VEDA95/OpenBoard-API/internal/util"
 	"github.com/doug-martin/goqu/v9"
+	"github.com/doug-martin/goqu/v9/exec"
 	"log"
 	"time"
 )
@@ -30,7 +32,7 @@ type LocalAuthProvider struct {
 	Config interface{}
 }
 
-func (localAuthProvider *LocalAuthProvider) Login(payload ProviderPayload) (*ProviderAuthResult, error) {
+func (localAuthProvider *LocalAuthProvider) Login(payload util.Payload) (*ProviderAuthResult, error) {
 	identity, ok := payload["identity"].(string)
 	password, secondOk := payload["password"].(string)
 
@@ -65,23 +67,52 @@ func (localAuthProvider *LocalAuthProvider) Login(payload ProviderPayload) (*Pro
 		return nil, err
 	}
 
-	now := time.Now()
-	settingsInterface := *settings.Instance.GetSettings("auth")
-	authSettings := settingsInterface.(*settings.AuthSettings)
+	authMethodCount := 0
+
+	_, err = db.Instance.From("open_board_multi_auth_method").Prepared(true).
+		Select(goqu.COUNT("id")).
+		Where(goqu.Ex{
+			"user_id": user.Id,
+		}).
+		ScanVal(&authMethodCount)
+
+	if err != nil {
+		return nil, err
+	}
+
 	transaction, err := db.Instance.Begin()
 
 	if err != nil {
 		return nil, err
 	}
 
-	sessionQuery := transaction.From("open_board_user_session").Prepared(true).Insert().Rows(goqu.Record{
-		"user_id":      user.Id,
-		"access_token": token,
-		"expires_on":   now.Local().Add(time.Duration(authSettings.AccessTokenLifetime)),
-		"ip_address":   payload["ip_address"].(string),
-		"user_agent":   payload["user_agent"].(string),
-		"remember_me":  payload["remember_me"].(bool),
-	}).Executor()
+	now := time.Now()
+	settingsInterface := *settings.Instance.GetSettings("auth")
+	authSettings := settingsInterface.(*settings.AuthSettings)
+	tokenLifetime := now.Local().Add(time.Duration(authSettings.AccessTokenLifetime))
+	var sessionQuery exec.QueryExecutor
+
+	if authSettings.MultiAuthEnabled {
+		sessionQuery = transaction.From("open_board_multi_auth_challenge").Prepared(true).
+			Insert().
+			Rows(goqu.Record{
+				"id":         token,
+				"user_id":    user.Id,
+				"expires_on": tokenLifetime,
+			}).
+			Executor()
+
+	} else {
+		sessionQuery = transaction.From("open_board_user_session").Prepared(true).Insert().Rows(goqu.Record{
+			"user_id":      user.Id,
+			"access_token": token,
+			"expires_on":   tokenLifetime,
+			"ip_address":   payload["ip_address"].(string),
+			"user_agent":   payload["user_agent"].(string),
+			"remember_me":  payload["remember_me"].(bool),
+		}).Executor()
+	}
+
 	updateUserQuery := transaction.From("open_board_user").Prepared(true).
 		Where(goqu.Ex{"id": user.Id}).
 		Update().
@@ -108,14 +139,14 @@ func (localAuthProvider *LocalAuthProvider) Login(payload ProviderPayload) (*Pro
 		return nil, err
 	}
 
-	return &ProviderAuthResult{AccessToken: token, UserId: user.Id}, nil
+	return &ProviderAuthResult{AccessToken: token, UserId: user.Id, MFARequired: true}, nil
 }
 
-func (localAuthProvider *LocalAuthProvider) Logout(payload ProviderPayload) error {
+func (localAuthProvider *LocalAuthProvider) Logout(payload util.Payload) error {
 	return nil
 }
 
-func (localAuthProvider *LocalAuthProvider) GetUser(payload ProviderPayload) (*User, error) {
+func (localAuthProvider *LocalAuthProvider) GetUser(payload util.Payload) (*User, error) {
 	columns, ok := payload["columns"].([]interface{})
 
 	if !ok {
@@ -159,7 +190,7 @@ func (localAuthProvider *LocalAuthProvider) GetUser(payload ProviderPayload) (*U
 	return &user, nil
 }
 
-func (localAuthProvider *LocalAuthProvider) GetUsers(payload ProviderPayload) (*[]User, error) {
+func (localAuthProvider *LocalAuthProvider) GetUsers(payload util.Payload) (*[]User, error) {
 	columns, ok := payload["columns"].([]interface{})
 
 	if !ok {

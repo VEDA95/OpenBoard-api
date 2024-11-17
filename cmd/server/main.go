@@ -24,9 +24,6 @@ func main() {
 		log.Panic(err)
 	}
 
-	app := fiber.New(fiber.Config{
-		ErrorHandler: util.ErrorHandler,
-	})
 	providerEntries := []auth.ProviderRegistrationEntry{
 		{
 			Key:    "local",
@@ -37,7 +34,13 @@ func main() {
 
 	settings.InitializeSettingsInstance([]string{"auth"})
 	auth.InitializeProvidersInstance(providerEntries)
+	auth.InitializeMultiAuthMethodStore()
 	validators.InitializeValidatorInstance()
+
+	app := fiber.New(fiber.Config{
+		ErrorHandler: util.ErrorHandler,
+	})
+
 	app.Get("/", routes.HelloWorld)
 
 	authGroup := app.Group("/auth")
