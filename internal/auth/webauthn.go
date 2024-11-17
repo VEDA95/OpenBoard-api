@@ -18,7 +18,11 @@ type WebAuthnMultiAuth struct {
 }
 
 func NewWebAuthnMultiAuth() (*WebAuthnMultiAuth, error) {
-	config := webauthn.Config{}
+	config := webauthn.Config{
+		RPDisplayName: "Open Board Webauthn",
+		RPID:          "localhost:8080",
+		RPOrigins:     []string{"http://localhost:3030", "http://localhost:8080"},
+	}
 	webAuthn, err := webauthn.New(&config)
 
 	if err != nil {
