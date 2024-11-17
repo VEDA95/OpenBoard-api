@@ -191,6 +191,7 @@ func (webAuthnMultiAuth *WebAuthnMultiAuth) VerifyAuthChallenge(challengeType st
 			return nil, err
 		}
 
+		now := time.Now()
 		sessionToken = seshToken
 		authMethodQuery = transaction.From("open_board_multi_auth_method").Prepared(true).
 			Update().
@@ -201,14 +202,27 @@ func (webAuthnMultiAuth *WebAuthnMultiAuth) VerifyAuthChallenge(challengeType st
 			Insert().
 			Rows(goqu.Record{
 				"user_id":      challenge.User.Id,
-				"expires_on":   time.Now().Local().Add(time.Duration(authSettings.AccessTokenLifetime)),
+				"expires_on":   now.Local().Add(time.Duration(authSettings.AccessTokenLifetime)),
 				"access_token": sessionToken,
 				"user_agent":   userAgent,
 				"ip_address":   ipAddress,
 			}).
 			Executor()
+		updateUserQuery := transaction.From("open_board_user").Prepared(true).
+			Where(goqu.Ex{"id": challenge.User.Id}).
+			Update().
+			Set(goqu.Record{"last_login": now}).
+			Executor()
 
 		if _, err := sessionQuery.Exec(); err != nil {
+			if err := transaction.Rollback(); err != nil {
+				return nil, err
+			}
+
+			return nil, err
+		}
+
+		if _, err := updateUserQuery.Exec(); err != nil {
 			if err := transaction.Rollback(); err != nil {
 				return nil, err
 			}
