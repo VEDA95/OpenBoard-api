@@ -206,6 +206,19 @@ func SelectMFAMethod(context *fiber.Ctx) error {
 			return err
 		}
 
+		if validatorData.ReturnType == "session" {
+			context.Status(fiber.StatusOK)
+			context.Cookie(&fiber.Cookie{
+				Name:     "open_board_session",
+				Value:    sessionToken,
+				Domain:   "localhost:8080",
+				HTTPOnly: true,
+				Secure:   false,
+			})
+
+			return nil
+		}
+
 		return util.JSONResponse(context, fiber.StatusOK, responses.OKResponse(fiber.StatusOK, auth.ProviderAuthResult{
 			AccessToken: sessionToken,
 			UserId:      userId,
