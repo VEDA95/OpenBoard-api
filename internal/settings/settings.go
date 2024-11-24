@@ -34,6 +34,9 @@ func GetSettingsInstance(name string) SettingsInterface {
 	switch name {
 	case "auth":
 		return &AuthSettings{}
+	case "notification":
+		return &NotificationSettings{}
+
 	default:
 		break
 	}

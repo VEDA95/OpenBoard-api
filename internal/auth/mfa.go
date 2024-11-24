@@ -54,7 +54,7 @@ func NewMultiAuthMethodStore() *MultiAuthMethodStore {
 func GetMultiAuthMethodInstance(name string) MultiAuthMethodInterface {
 	switch name {
 	case "otp":
-		return nil
+		return &OTPMultiAuth{}
 
 	case "authenticator":
 		return nil
