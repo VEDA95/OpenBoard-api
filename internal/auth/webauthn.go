@@ -33,6 +33,13 @@ func NewWebAuthnMultiAuth() (*WebAuthnMultiAuth, error) {
 }
 
 func (webAuthnMultiAuth *WebAuthnMultiAuth) CreateAuthChallenge(challengeType string, payload util.Payload) (util.Payload, error) {
+	settingsInstance := *settings.Instance.GetSettings("auth")
+	authSettings := settingsInstance.(*settings.AuthSettings)
+
+	if !authSettings.WebAuthnEnabled {
+		return util.Payload{}, errors.New("webauthn is not enabled")
+	}
+
 	token, ok := payload["token"].(string)
 
 	if !ok {
@@ -96,6 +103,17 @@ func (webAuthnMultiAuth *WebAuthnMultiAuth) CreateAuthChallenge(challengeType st
 }
 
 func (webAuthnMultiAuth *WebAuthnMultiAuth) VerifyAuthChallenge(challengeType string, payload util.Payload) (*ProviderAuthResult, error) {
+	settingInterface := *settings.Instance.GetSettings("auth")
+	authSettings := settingInterface.(*settings.AuthSettings)
+
+	if !authSettings.WebAuthnEnabled {
+		return nil, errors.New("webauthn is not enabled")
+	}
+
+	if challengeType != "register" && challengeType != "login" {
+		return nil, errors.New("invalid challenge type")
+	}
+
 	token, ok := payload["token"].(string)
 	context, okTwo := payload["context"].(*fiber.Ctx)
 
@@ -150,7 +168,9 @@ func (webAuthnMultiAuth *WebAuthnMultiAuth) VerifyAuthChallenge(challengeType st
 
 		webAuthnCredential = credential
 
-	} else if challengeType == "login" {
+	}
+
+	if challengeType == "login" {
 		if challenge.AuthMethod == nil || challenge.AuthMethod.Type != "webauthn" {
 			return nil, errors.New("invalid challenge")
 		}
@@ -163,8 +183,6 @@ func (webAuthnMultiAuth *WebAuthnMultiAuth) VerifyAuthChallenge(challengeType st
 
 		webAuthnCredential = credential
 
-	} else {
-		return nil, errors.New("invalid challenge type")
 	}
 
 	var sessionToken string
@@ -174,8 +192,6 @@ func (webAuthnMultiAuth *WebAuthnMultiAuth) VerifyAuthChallenge(challengeType st
 		return nil, err
 	}
 
-	settingInterface := *settings.Instance.GetSettings("auth")
-	authSettings := settingInterface.(*settings.AuthSettings)
 	var authMethodQuery exec.QueryExecutor
 
 	if challengeType == "register" {
