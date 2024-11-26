@@ -7,6 +7,7 @@ import (
 	"github.com/VEDA95/OpenBoard-API/internal/auth"
 	"github.com/VEDA95/OpenBoard-API/internal/config"
 	"github.com/VEDA95/OpenBoard-API/internal/db"
+	"github.com/VEDA95/OpenBoard-API/internal/email"
 	"github.com/VEDA95/OpenBoard-API/internal/settings"
 	"github.com/VEDA95/OpenBoard-API/internal/util"
 	"github.com/gofiber/fiber/v2"
@@ -36,6 +37,10 @@ func main() {
 	auth.InitializeProvidersInstance(providerEntries)
 	auth.InitializeMultiAuthMethodStore()
 	validators.InitializeValidatorInstance()
+
+	if err := email.InitializeMailClient(); err != nil {
+		log.Panic(err)
+	}
 
 	app := fiber.New(fiber.Config{
 		ErrorHandler: util.ErrorHandler,
