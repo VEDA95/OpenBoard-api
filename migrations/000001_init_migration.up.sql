@@ -106,10 +106,7 @@ CREATE TABLE "open_board_notification_settings" (
     "name" VARCHAR(255),
     "email_address" VARCHAR(255),
     "use_tls" BOOLEAN,
-    "use_starttls" BOOLEAN,
-    "twilio_sid" VARCHAR(255),
-    "twilio_token" TEXT,
-    "twilio_sender_number" VARCHAR(255)
+    "use_starttls" BOOLEAN
 );
 
 CREATE TABLE "open_board_auth_settings" (
