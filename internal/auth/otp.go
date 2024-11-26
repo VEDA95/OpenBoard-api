@@ -2,7 +2,9 @@ package auth
 
 import (
 	"errors"
+	"fmt"
 	"github.com/VEDA95/OpenBoard-API/internal/db"
+	"github.com/VEDA95/OpenBoard-API/internal/email"
 	"github.com/VEDA95/OpenBoard-API/internal/settings"
 	"github.com/VEDA95/OpenBoard-API/internal/util"
 	"github.com/doug-martin/goqu/v9"
@@ -26,14 +28,9 @@ func (otpMultiAuth *OTPMultiAuth) CreateAuthChallenge(challengeType string, payl
 	}
 
 	token, ok := payload["token"].(string)
-	transportMethod, okTwo := payload["transport_method"].(string)
 
 	if !ok {
 		return nil, errors.New("token is missing")
-	}
-
-	if !okTwo || (transportMethod != "sms" && transportMethod != "email") {
-		return nil, errors.New("invalid transport method")
 	}
 
 	var challenge MultiAuthChallenge
@@ -70,12 +67,17 @@ func (otpMultiAuth *OTPMultiAuth) CreateAuthChallenge(challengeType string, payl
 	}
 
 	secondSettingsInterface := *settings.Instance.GetSettings("notification")
-	notificationSettings := settingsInterface.(*settings.NotificationSettings)
+	notificationSettings := secondSettingsInterface.(*settings.NotificationSettings)
+	mailErr := email.Client.Send(
+		notificationSettings.EmailAddress,
+		[]string{challenge.User.Email},
+		"Open Board MFA verification",
+		fmt.Sprintf("Here is your One-time password for login: %s", otp),
+		false,
+	)
 
-	if transportMethod == "sms" {
-	}
-
-	if transportMethod == "email" {
+	if mailErr != nil {
+		return nil, err
 	}
 
 	return nil, nil
