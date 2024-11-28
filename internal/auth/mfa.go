@@ -57,7 +57,7 @@ func GetMultiAuthMethodInstance(name string) MultiAuthMethodInterface {
 		return &OTPMultiAuth{}
 
 	case "authenticator":
-		return nil
+		return &AuthenticatorMultiAuth{}
 
 	case "webauthn":
 		webAuthn, err := NewWebAuthnMultiAuth()

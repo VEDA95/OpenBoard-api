@@ -19,6 +19,7 @@ require (
 require (
 	github.com/BurntSushi/toml v1.4.0 // indirect
 	github.com/andybalholm/brotli v1.1.0 // indirect
+	github.com/boombuler/barcode v1.0.1-0.20190219062509-6c824513bacc // indirect
 	github.com/docker/go-units v0.4.0 // indirect
 	github.com/fxamacker/cbor/v2 v2.7.0 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.3 // indirect
@@ -42,6 +43,7 @@ require (
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/mattn/go-runewidth v0.0.16 // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
+	github.com/pquerna/otp v1.4.0 // indirect
 	github.com/rivo/uniseg v0.4.7 // indirect
 	github.com/stretchr/objx v0.5.2 // indirect
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
