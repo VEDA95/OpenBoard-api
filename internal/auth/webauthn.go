@@ -36,7 +36,7 @@ func (webAuthnMultiAuth *WebAuthnMultiAuth) CreateAuthChallenge(challengeType st
 	settingsInstance := *settings.Instance.GetSettings("auth")
 	authSettings := settingsInstance.(*settings.AuthSettings)
 
-	if !authSettings.WebAuthnEnabled {
+	if !authSettings.MultiAuthEnabled || !authSettings.WebAuthnEnabled {
 		return util.Payload{}, errors.New("webauthn is not enabled")
 	}
 
@@ -106,7 +106,7 @@ func (webAuthnMultiAuth *WebAuthnMultiAuth) VerifyAuthChallenge(challengeType st
 	settingInterface := *settings.Instance.GetSettings("auth")
 	authSettings := settingInterface.(*settings.AuthSettings)
 
-	if !authSettings.WebAuthnEnabled {
+	if !authSettings.MultiAuthEnabled || !authSettings.WebAuthnEnabled {
 		return nil, errors.New("webauthn is not enabled")
 	}
 
@@ -185,7 +185,6 @@ func (webAuthnMultiAuth *WebAuthnMultiAuth) VerifyAuthChallenge(challengeType st
 
 	}
 
-	var sessionToken string
 	transaction, err := db.Instance.Begin()
 
 	if err != nil {
@@ -204,37 +203,12 @@ func (webAuthnMultiAuth *WebAuthnMultiAuth) VerifyAuthChallenge(challengeType st
 				"credential_data": webAuthnCredential,
 			}).
 			Executor()
-	} else {
-		seshToken, err := CreateSessionToken()
-
-		if err != nil {
-			return nil, err
-		}
-
-		now := time.Now()
-		sessionToken = seshToken
-		authMethodQuery = transaction.From("open_board_multi_auth_method").Prepared(true).
-			Update().
-			Where(goqu.Ex{"id": challenge.AuthMethod.Id}).
-			Set(goqu.Record{"credential_data": webAuthnCredential}).
-			Executor()
-		sessionQuery := transaction.From("open_board_user_session").Prepared(true).
-			Insert().
-			Rows(goqu.Record{
-				"user_id":      challenge.User.Id,
-				"expires_on":   now.Local().Add(time.Duration(authSettings.AccessTokenLifetime)),
-				"access_token": sessionToken,
-				"user_agent":   userAgent,
-				"ip_address":   ipAddress,
-			}).
-			Executor()
-		updateUserQuery := transaction.From("open_board_user").Prepared(true).
-			Where(goqu.Ex{"id": challenge.User.Id}).
-			Update().
-			Set(goqu.Record{"last_login": now}).
+		deleteQuery := transaction.From("open_board_multi_auth_challenge").Prepared(true).
+			Delete().
+			Where(goqu.Ex{"id": token}).
 			Executor()
 
-		if _, err := sessionQuery.Exec(); err != nil {
+		if _, err := authMethodQuery.Exec(); err != nil {
 			if err := transaction.Rollback(); err != nil {
 				return nil, err
 			}
@@ -242,21 +216,70 @@ func (webAuthnMultiAuth *WebAuthnMultiAuth) VerifyAuthChallenge(challengeType st
 			return nil, err
 		}
 
-		if _, err := updateUserQuery.Exec(); err != nil {
+		if _, err := deleteQuery.Exec(); err != nil {
 			if err := transaction.Rollback(); err != nil {
 				return nil, err
 			}
 
 			return nil, err
 		}
+
+		if err := transaction.Commit(); err != nil {
+			return nil, err
+		}
+
+		return &ProviderAuthResult{UserId: challenge.User.Id}, nil
 	}
 
+	sessionToken, err := CreateSessionToken()
+
+	if err != nil {
+		return nil, err
+	}
+
+	now := time.Now()
+	authMethodQuery = transaction.From("open_board_multi_auth_method").Prepared(true).
+		Update().
+		Where(goqu.Ex{"id": challenge.AuthMethod.Id}).
+		Set(goqu.Record{"date_updated": now, "credential_data": webAuthnCredential}).
+		Executor()
+	sessionQuery := transaction.From("open_board_user_session").Prepared(true).
+		Insert().
+		Rows(goqu.Record{
+			"user_id":      challenge.User.Id,
+			"expires_on":   now.Local().Add(time.Duration(authSettings.AccessTokenLifetime)),
+			"access_token": sessionToken,
+			"user_agent":   userAgent,
+			"ip_address":   ipAddress,
+		}).
+		Executor()
+	updateUserQuery := transaction.From("open_board_user").Prepared(true).
+		Where(goqu.Ex{"id": challenge.User.Id}).
+		Update().
+		Set(goqu.Record{"last_login": now}).
+		Executor()
 	deleteQuery := transaction.From("open_board_multi_auth_challenge").Prepared(true).
 		Delete().
 		Where(goqu.Ex{"id": token}).
 		Executor()
 
 	if _, err := authMethodQuery.Exec(); err != nil {
+		if err := transaction.Rollback(); err != nil {
+			return nil, err
+		}
+
+		return nil, err
+	}
+
+	if _, err := sessionQuery.Exec(); err != nil {
+		if err := transaction.Rollback(); err != nil {
+			return nil, err
+		}
+
+		return nil, err
+	}
+
+	if _, err := updateUserQuery.Exec(); err != nil {
 		if err := transaction.Rollback(); err != nil {
 			return nil, err
 		}

@@ -19,7 +19,7 @@ func (otpMultiAuth *OTPMultiAuth) CreateAuthChallenge(challengeType string, payl
 	settingsInterface := *settings.Instance.GetSettings("auth")
 	authSettings := settingsInterface.(*settings.AuthSettings)
 
-	if !authSettings.OTPEnabled {
+	if !authSettings.MultiAuthEnabled || !authSettings.OTPEnabled {
 		return nil, errors.New("OTP via email or text is not enabled")
 	}
 
@@ -87,7 +87,7 @@ func (otpMultiAuth *OTPMultiAuth) VerifyAuthChallenge(challengeType string, payl
 	settingsInterface := *settings.Instance.GetSettings("auth")
 	authSettings := settingsInterface.(*settings.AuthSettings)
 
-	if !authSettings.OTPEnabled {
+	if !authSettings.MultiAuthEnabled || !authSettings.OTPEnabled {
 		return nil, errors.New("OTP via email or text is not enabled")
 	}
 
@@ -97,7 +97,6 @@ func (otpMultiAuth *OTPMultiAuth) VerifyAuthChallenge(challengeType string, payl
 
 	token, ok := payload["token"].(string)
 	otp, okTwo := payload["otp"].(string)
-	context, okThree := payload["context"].(*fiber.Ctx)
 
 	if !ok {
 		return nil, errors.New("token is missing")
@@ -105,10 +104,6 @@ func (otpMultiAuth *OTPMultiAuth) VerifyAuthChallenge(challengeType string, payl
 
 	if !okTwo {
 		return nil, errors.New("otp is missing")
-	}
-
-	if !okThree {
-		return nil, errors.New("fiber context is missing")
 	}
 
 	var challenge MultiAuthChallenge
@@ -148,7 +143,6 @@ func (otpMultiAuth *OTPMultiAuth) VerifyAuthChallenge(challengeType string, payl
 		return nil, errors.New("invalid otp")
 	}
 
-	var sessionToken string
 	transaction, err := db.Instance.Begin()
 
 	if err != nil {
@@ -168,39 +162,12 @@ func (otpMultiAuth *OTPMultiAuth) VerifyAuthChallenge(challengeType string, payl
 			}).
 			Executor()
 
-	} else {
-		seshToken, err := CreateSessionToken()
-
-		if err != nil {
-			return nil, err
-		}
-
-		now := time.Now()
-		userAgent := string(context.Request().Header.UserAgent()[:])
-		ipAddress := context.IP()
-		sessionToken = seshToken
-		authMethodQuery = transaction.From("open_board_multi_auth_method").Prepared(true).
-			Update().
-			Where(goqu.Ex{"id": challenge.AuthMethod.Id}).
-			Set(goqu.Record{"credential_data": map[string]interface{}{}}).
-			Executor()
-		sessionQuery := transaction.From("open_board_user_session").Prepared(true).
-			Insert().
-			Rows(goqu.Record{
-				"user_id":      challenge.User.Id,
-				"expires_on":   now.Local().Add(time.Duration(authSettings.AccessTokenLifetime)),
-				"access_token": sessionToken,
-				"user_agent":   userAgent,
-				"ip_address":   ipAddress,
-			}).
-			Executor()
-		updateUserQuery := transaction.From("open_board_user").Prepared(true).
-			Where(goqu.Ex{"id": challenge.User.Id}).
-			Update().
-			Set(goqu.Record{"last_login": now}).
+		deleteQuery := transaction.From("open_board_multi_auth_challenge").Prepared(true).
+			Delete().
+			Where(goqu.Ex{"id": token}).
 			Executor()
 
-		if _, err := sessionQuery.Exec(); err != nil {
+		if _, err := authMethodQuery.Exec(); err != nil {
 			if err := transaction.Rollback(); err != nil {
 				return nil, err
 			}
@@ -208,21 +175,78 @@ func (otpMultiAuth *OTPMultiAuth) VerifyAuthChallenge(challengeType string, payl
 			return nil, err
 		}
 
-		if _, err := updateUserQuery.Exec(); err != nil {
+		if _, err := deleteQuery.Exec(); err != nil {
 			if err := transaction.Rollback(); err != nil {
 				return nil, err
 			}
 
 			return nil, err
 		}
+
+		if err := transaction.Commit(); err != nil {
+			return nil, err
+		}
+
+		return &ProviderAuthResult{UserId: challenge.User.Id}, nil
 	}
 
+	sessionToken, err := CreateSessionToken()
+
+	if err != nil {
+		return nil, err
+	}
+
+	context, ok := payload["context"].(*fiber.Ctx)
+
+	if !ok {
+		return nil, errors.New("fiber context is missing")
+	}
+
+	now := time.Now()
+	userAgent := string(context.Request().Header.UserAgent()[:])
+	ipAddress := context.IP()
+	authMethodQuery = transaction.From("open_board_multi_auth_method").Prepared(true).
+		Update().
+		Where(goqu.Ex{"id": challenge.AuthMethod.Id}).
+		Set(goqu.Record{"date_updated": now}).
+		Executor()
+	sessionQuery := transaction.From("open_board_user_session").Prepared(true).
+		Insert().
+		Rows(goqu.Record{
+			"user_id":      challenge.User.Id,
+			"expires_on":   now.Local().Add(time.Duration(authSettings.AccessTokenLifetime)),
+			"access_token": sessionToken,
+			"user_agent":   userAgent,
+			"ip_address":   ipAddress,
+		}).
+		Executor()
+	updateUserQuery := transaction.From("open_board_user").Prepared(true).
+		Where(goqu.Ex{"id": challenge.User.Id}).
+		Update().
+		Set(goqu.Record{"last_login": now}).
+		Executor()
 	deleteQuery := transaction.From("open_board_multi_auth_challenge").Prepared(true).
 		Delete().
 		Where(goqu.Ex{"id": token}).
 		Executor()
 
 	if _, err := authMethodQuery.Exec(); err != nil {
+		if err := transaction.Rollback(); err != nil {
+			return nil, err
+		}
+
+		return nil, err
+	}
+
+	if _, err := sessionQuery.Exec(); err != nil {
+		if err := transaction.Rollback(); err != nil {
+			return nil, err
+		}
+
+		return nil, err
+	}
+
+	if _, err := updateUserQuery.Exec(); err != nil {
 		if err := transaction.Rollback(); err != nil {
 			return nil, err
 		}
@@ -242,5 +266,5 @@ func (otpMultiAuth *OTPMultiAuth) VerifyAuthChallenge(challengeType string, payl
 		return nil, err
 	}
 
-	return nil, nil
+	return &ProviderAuthResult{AccessToken: sessionToken, UserId: challenge.User.Id}, nil
 }
