@@ -203,7 +203,7 @@ func (authenticator *AuthenticatorMultiAuth) VerifyAuthChallenge(challengeType s
 			return nil, err
 		}
 
-		return nil, nil
+		return &ProviderAuthResult{UserId: challenge.User.Id}, nil
 	}
 
 	context, ok := payload["context"].(*fiber.Ctx)
@@ -282,5 +282,5 @@ func (authenticator *AuthenticatorMultiAuth) VerifyAuthChallenge(challengeType s
 		return nil, err
 	}
 
-	return &ProviderAuthResult{AccessToken: token}, nil
+	return &ProviderAuthResult{AccessToken: token, UserId: challenge.User.Id}, nil
 }
