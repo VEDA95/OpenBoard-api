@@ -7,7 +7,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
-func CreateMultiAuthMethodStart(context *fiber.Ctx) error {
+func handleWebAuthnRequestStart(context *fiber.Ctx, challengeType string) error {
 	token, err := auth.ExtractSessionToken(context, "open_board_mfa_challenge")
 
 	if err != nil {
@@ -18,7 +18,7 @@ func CreateMultiAuthMethodStart(context *fiber.Ctx) error {
 	payload := util.Payload{
 		"token": token,
 	}
-	challengeResults, err := multiAuthMethod.CreateAuthChallenge("register", payload)
+	challengeResults, err := multiAuthMethod.CreateAuthChallenge(challengeType, payload)
 
 	if err != nil {
 		return err
@@ -27,7 +27,7 @@ func CreateMultiAuthMethodStart(context *fiber.Ctx) error {
 	return util.JSONResponse(context, fiber.StatusOK, responses.OKResponse(fiber.StatusOK, challengeResults["options"]))
 }
 
-func CreateMultiAuthMethodEnd(context *fiber.Ctx) error {
+func handleWebAuthnRequestEnd(context *fiber.Ctx, challengeType string) error {
 	token, err := auth.ExtractSessionToken(context, "open_board_mfa_challenge")
 
 	if err != nil {
@@ -39,52 +39,27 @@ func CreateMultiAuthMethodEnd(context *fiber.Ctx) error {
 		"token":   token,
 		"context": context,
 	}
-	challengeResults, err := multiAuthMethod.VerifyAuthChallenge("register", payload)
+	challengeResults, err := multiAuthMethod.VerifyAuthChallenge(challengeType, payload)
 
 	if err != nil {
 		return err
 	}
 
 	return util.JSONResponse(context, fiber.StatusOK, responses.OKResponse(fiber.StatusOK, challengeResults))
+}
+
+func CreateWebAuthnAuthMethodStart(context *fiber.Ctx) error {
+	return handleWebAuthnRequestStart(context, "register")
+}
+
+func CreateWebAuthnAuthMethodEnd(context *fiber.Ctx) error {
+	return handleWebAuthnRequestEnd(context, "register")
 }
 
 func CreateMultiAuthChallengeStart(context *fiber.Ctx) error {
-	token, err := auth.ExtractSessionToken(context, "open_board_mfa_challenge")
-
-	if err != nil {
-		return err
-	}
-
-	multiAuthMethod := *auth.MultiAuthMethods.GetMultiAuthMethod("webauthn")
-	payload := util.Payload{
-		"token": token,
-	}
-	challengeResults, err := multiAuthMethod.CreateAuthChallenge("login", payload)
-
-	if err != nil {
-		return err
-	}
-
-	return util.JSONResponse(context, fiber.StatusOK, responses.OKResponse(fiber.StatusOK, challengeResults["options"]))
+	return handleWebAuthnRequestStart(context, "login")
 }
 
-func CreateMultiAuthChallengeEnd(context *fiber.Ctx) error {
-	token, err := auth.ExtractSessionToken(context, "open_board_mfa_challenge")
-
-	if err != nil {
-		return err
-	}
-
-	multiAuthMethod := *auth.MultiAuthMethods.GetMultiAuthMethod("webauthn")
-	payload := util.Payload{
-		"token":   token,
-		"context": context,
-	}
-	challengeResults, err := multiAuthMethod.VerifyAuthChallenge("login", payload)
-
-	if err != nil {
-		return err
-	}
-
-	return util.JSONResponse(context, fiber.StatusOK, responses.OKResponse(fiber.StatusOK, challengeResults))
+func CreateWebAuthnAuthChallengeEnd(context *fiber.Ctx) error {
+	return handleWebAuthnRequestEnd(context, "login")
 }
