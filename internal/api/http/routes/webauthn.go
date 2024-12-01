@@ -56,10 +56,10 @@ func CreateWebAuthnAuthMethodEnd(context *fiber.Ctx) error {
 	return handleWebAuthnRequestEnd(context, "register")
 }
 
-func CreateMultiAuthChallengeStart(context *fiber.Ctx) error {
+func CreateWebAuthnChallengeStart(context *fiber.Ctx) error {
 	return handleWebAuthnRequestStart(context, "login")
 }
 
-func CreateWebAuthnAuthChallengeEnd(context *fiber.Ctx) error {
+func CreateWebAuthnChallengeEnd(context *fiber.Ctx) error {
 	return handleWebAuthnRequestEnd(context, "login")
 }
