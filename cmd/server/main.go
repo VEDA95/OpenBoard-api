@@ -53,6 +53,25 @@ func main() {
 	authGroup.Post("/login", routes.LocalLogin)
 	authGroup.Get("/@me", routes.Me)
 
+	mfaGroup := authGroup.Group("/mfa")
+	registerGroup := mfaGroup.Group("/register")
+	challengeGroup := mfaGroup.Group("/challenge")
+
+	mfaGroup.Get("/methods", routes.GETMFAMethods)
+	mfaGroup.Post("/methods", routes.SelectMFAMethod)
+	registerGroup.Post("/webauthn/create", routes.CreateWebAuthnAuthMethodStart)
+	registerGroup.Post("/webauthn/verify", routes.CreateWebAuthnAuthMethodEnd)
+	registerGroup.Post("/otp/create", routes.CreateOTPAuthMethodStart)
+	registerGroup.Post("/otp/verify", routes.CreateOTPAuthMethodEnd)
+	registerGroup.Post("/authenticator/create", routes.CreateAuthenticatorAuthMethodStart)
+	registerGroup.Post("/authenticator/verify", routes.CreateAuthenticatorAuthMethodEnd)
+	challengeGroup.Post("/webauthn/create", routes.CreateWebAuthnChallengeStart)
+	challengeGroup.Post("/webauthn/verify", routes.CreateWebAuthnChallengeEnd)
+	challengeGroup.Post("/otp/create", routes.CreateOTPChallengeStart)
+	challengeGroup.Post("/otp/verify", routes.CreateOTPChallengeEnd)
+	challengeGroup.Post("/authenticator/create", routes.CreateAuthenticatorChallengeStart)
+	challengeGroup.Post("/authenticator/verify", routes.CreateAuthenticatorChallengeEnd)
+
 	userGroup := app.Group("/api/users")
 
 	userGroup.Get("/", routes.ShowUsers)
