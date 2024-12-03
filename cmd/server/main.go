@@ -48,15 +48,20 @@ func main() {
 
 	app.Get("/", routes.HelloWorld)
 
+	apiGroup := app.Group("/api")
 	authGroup := app.Group("/auth")
-
-	authGroup.Post("/login", routes.LocalLogin)
-	authGroup.Get("/@me", routes.Me)
-
+	userGroup := apiGroup.Group("/users")
 	mfaGroup := authGroup.Group("/mfa")
 	registerGroup := mfaGroup.Group("/register")
 	challengeGroup := mfaGroup.Group("/challenge")
 
+	userGroup.Get("/", routes.ShowUsers)
+	userGroup.Post("/", routes.CreateUser)
+	userGroup.Get("/:id", routes.ShowUser)
+	userGroup.Put("/:id", routes.UpdateUser)
+	userGroup.Delete("/:id", routes.DeleteUser)
+	authGroup.Post("/login", routes.LocalLogin)
+	authGroup.Get("/@me", routes.Me)
 	mfaGroup.Get("/methods", routes.GETMFAMethods)
 	mfaGroup.Post("/methods", routes.SelectMFAMethod)
 	registerGroup.Post("/webauthn/create", routes.CreateWebAuthnAuthMethodStart)
@@ -71,14 +76,6 @@ func main() {
 	challengeGroup.Post("/otp/verify", routes.CreateOTPChallengeEnd)
 	challengeGroup.Post("/authenticator/create", routes.CreateAuthenticatorChallengeStart)
 	challengeGroup.Post("/authenticator/verify", routes.CreateAuthenticatorChallengeEnd)
-
-	userGroup := app.Group("/api/users")
-
-	userGroup.Get("/", routes.ShowUsers)
-	userGroup.Post("/", routes.CreateUser)
-	userGroup.Get("/:id", routes.ShowUser)
-	userGroup.Put("/:id", routes.UpdateUser)
-	userGroup.Delete("/:id", routes.DeleteUser)
 
 	if err := app.Listen(fmt.Sprintf("%s:%s", conf.Host, conf.Port)); err != nil {
 		log.Panic(err)
