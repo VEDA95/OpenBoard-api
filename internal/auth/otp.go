@@ -68,6 +68,11 @@ func (otpMultiAuth *OTPMultiAuth) CreateAuthChallenge(challengeType string, payl
 
 	secondSettingsInterface := *settings.Instance.GetSettings("notification")
 	notificationSettings := secondSettingsInterface.(*settings.NotificationSettings)
+
+	if notificationSettings.SMTPServer == "" && notificationSettings.SMTPPort == 0 && notificationSettings.SMTPUser == "" && notificationSettings.SMTPPassword == "" {
+		return nil, nil
+	}
+
 	mailErr := email.Client.Send(
 		notificationSettings.EmailAddress,
 		[]string{challenge.User.Email},
