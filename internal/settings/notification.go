@@ -6,14 +6,13 @@ import (
 )
 
 type NotificationSettings struct {
-	SMTPServer   string `db:"smtp_server"`
-	SMTPPort     int64  `db:"smtp_port"`
-	SMTPUser     string `db:"smtp_user"`
-	SMTPPassword string `db:"smtp_password"`
-	Name         string `db:"name"`
-	EmailAddress string `db:"email_address"`
+	SMTPServer   string `db:"smtp_server,omitempty"`
+	SMTPPort     int64  `db:"smtp_port,omitempty"`
+	SMTPUser     string `db:"smtp_user,omitempty"`
+	SMTPPassword string `db:"smtp_password,omitempty"`
+	Name         string `db:"name,omitempty"`
+	EmailAddress string `db:"email_address, omitempty"`
 	UseTLS       bool   `db:"use_tls"`
-	UseStarTTLS  bool   `db:"use_starttls"`
 }
 
 func (notificationSettings *NotificationSettings) Load() error {
@@ -49,7 +48,6 @@ func (notificationSettings *NotificationSettings) Save() error {
 			"name":          notificationSettings.Name,
 			"email_address": notificationSettings.EmailAddress,
 			"use_tls":       notificationSettings.UseTLS,
-			"use_starttls":  notificationSettings.UseStarTTLS,
 		}).
 		Executor()
 

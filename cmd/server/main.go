@@ -33,7 +33,7 @@ func main() {
 		},
 	}
 
-	settings.InitializeSettingsInstance([]string{"auth"})
+	settings.InitializeSettingsInstance([]string{"auth", "notification"})
 	auth.InitializeProvidersInstance(providerEntries)
 	auth.InitializeMultiAuthMethodStore()
 	validators.InitializeValidatorInstance()

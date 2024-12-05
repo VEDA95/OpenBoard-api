@@ -25,31 +25,19 @@ func (authSettings *AuthSettings) Load() error {
 	}
 
 	if !exists {
-		accessTokenLifetime := 3600
-		refreshTokenLifetime := 7200
-		refreshTokenIdleLifetime := 1209600
 		createAuthSettingsQuery := db.Instance.From("open_board_auth_settings").Prepared(true).
 			Insert().
 			Rows(
-				goqu.Record{
-					"access_token_lifetime":       accessTokenLifetime,
-					"refresh_token_lifetime":      refreshTokenLifetime,
-					"refresh_token_idle_lifetime": refreshTokenIdleLifetime,
-					"multi_factor_auth_enabled":   true,
-					"force_multi_factor_auth":     false,
-					"otp_enabled":                 true,
-					"authenticator_enabled":       true,
-					"webauthn_enabled":            true,
-				},
+				goqu.Record{},
 			).Executor()
 
 		if _, err := createAuthSettingsQuery.Exec(); err != nil {
 			return err
 		}
 
-		authSettings.AccessTokenLifetime = int64(accessTokenLifetime)
-		authSettings.RefreshTokenLifetime = int64(refreshTokenLifetime)
-		authSettings.RefreshTokenIdleLifetime = int64(refreshTokenIdleLifetime)
+		authSettings.AccessTokenLifetime = int64(3600)
+		authSettings.RefreshTokenLifetime = int64(7200)
+		authSettings.RefreshTokenIdleLifetime = int64(1209600)
 		authSettings.MultiAuthEnabled = true
 		authSettings.ForceMultiAuthEnabled = false
 		authSettings.OTPEnabled = true

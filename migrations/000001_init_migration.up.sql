@@ -105,19 +105,18 @@ CREATE TABLE "open_board_notification_settings" (
     "smtp_password" TEXT,
     "name" VARCHAR(255),
     "email_address" VARCHAR(255),
-    "use_tls" BOOLEAN,
-    "use_starttls" BOOLEAN
+    "use_tls" BOOLEAN NOT NULL DEFAULT FALSE
 );
 
 CREATE TABLE "open_board_auth_settings" (
-    "access_token_lifetime" INTEGER NOT NULL,
-    "refresh_token_lifetime" INTEGER NOT NULL,
-    "refresh_token_idle_lifetime" INTEGER NOT NULL,
-    "multi_factor_auth_enabled" BOOLEAN NOT NULL,
-    "force_multi_factor_auth" BOOLEAN NOT NULL,
-    "otp_enabled" BOOLEAN NOT NULL,
-    "authenticator_enabled" BOOLEAN NOT NULL,
-    "webauthn_enabled" BOOLEAN NOT NULL
+    "access_token_lifetime" INTEGER NOT NULL DEFAULT 3600,
+    "refresh_token_lifetime" INTEGER NOT NULL DEFAULT 7200,
+    "refresh_token_idle_lifetime" INTEGER NOT NULL DEFAULT 1209600,
+    "multi_factor_auth_enabled" BOOLEAN NOT NULL DEFAULT TRUE,
+    "force_multi_factor_auth" BOOLEAN NOT NULL DEFAULT FALSE,
+    "otp_enabled" BOOLEAN NOT NULL DEFAULT TRUE,
+    "authenticator_enabled" BOOLEAN NOT NULL DEFAULT TRUE,
+    "webauthn_enabled" BOOLEAN NOT NULL DEFAULT TRUE
 );
 
 CREATE TABLE "open_board_file_upload" (

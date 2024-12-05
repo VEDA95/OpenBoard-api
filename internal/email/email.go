@@ -15,14 +15,22 @@ var Client *MailClient
 func NewMailClient() (*MailClient, error) {
 	settingsInterface := *settings.Instance.GetSettings("notification")
 	notificationSettings := settingsInterface.(*settings.NotificationSettings)
+
+	if notificationSettings.SMTPServer == "" && notificationSettings.SMTPPort == 0 && notificationSettings.SMTPUser == "" && notificationSettings.SMTPPassword == "" {
+		return nil, nil
+	}
+
 	mailOptions := []mail.Option{
-		mail.WithPort(int(notificationSettings.SMTPPort)),
 		mail.WithSMTPAuth(mail.SMTPAuthPlain),
 		mail.WithUsername(notificationSettings.SMTPUser),
 		mail.WithPassword(notificationSettings.SMTPPassword),
 	}
 
-	if notificationSettings.UseStarTTLS {
+	if notificationSettings.SMTPPort > 0 {
+		mailOptions = append(mailOptions, mail.WithPort(int(notificationSettings.SMTPPort)))
+	}
+
+	if notificationSettings.UseTLS {
 		mailOptions = append(mailOptions, mail.WithTLSConfig(&tls.Config{
 			InsecureSkipVerify: true,
 			ClientAuth:         tls.NoClientCert,
