@@ -283,7 +283,7 @@ func SelectMFAMethod(context *fiber.Ctx) error {
 }
 
 func LocalRefresh(context *fiber.Ctx) error {
-	token, err := auth.ExtractSessionToken(context, "open_board_session")
+	token, err := auth.ExtractSessionToken(context, "remember_me")
 
 	if err != nil {
 		return err
