@@ -1,6 +1,7 @@
 package routes
 
 import (
+	"fmt"
 	"github.com/VEDA95/OpenBoard-API/internal/api/http/responses"
 	"github.com/VEDA95/OpenBoard-API/internal/api/http/validators"
 	"github.com/VEDA95/OpenBoard-API/internal/auth"
@@ -61,11 +62,17 @@ func handleAuthenticatorEnd(context *fiber.Ctx, challengeType string) error {
 		return err
 	}
 
-	if challengeType == "login" {
-		return util.JSONResponse(context, fiber.StatusOK, nil)
+	responsePayload := fiber.Map{"user_id": challengeResults.UserId}
+
+	if challengeResults.AccessToken != "" {
+		responsePayload["access_token"] = challengeResults.AccessToken
 	}
 
-	return util.JSONResponse(context, fiber.StatusOK, responses.OKResponse(fiber.StatusOK, challengeResults))
+	if challengeResults.RefreshToken != "" && challengeResults.Validator != "" {
+		responsePayload["refresh_token"] = fmt.Sprintf("%s:%s", challengeResults.RefreshToken, challengeResults.Validator)
+	}
+
+	return util.JSONResponse(context, fiber.StatusOK, responses.OKResponse(fiber.StatusOK, responsePayload))
 }
 
 func CreateAuthenticatorAuthMethodStart(context *fiber.Ctx) error {

@@ -1,6 +1,7 @@
 package routes
 
 import (
+	"fmt"
 	"github.com/VEDA95/OpenBoard-API/internal/api/http/responses"
 	"github.com/VEDA95/OpenBoard-API/internal/api/http/validators"
 	"github.com/VEDA95/OpenBoard-API/internal/auth"
@@ -57,7 +58,17 @@ func handleOTPEnd(context *fiber.Ctx, challengeType string) error {
 		return err
 	}
 
-	return util.JSONResponse(context, fiber.StatusOK, responses.OKResponse(fiber.StatusOK, challengeResults))
+	responsePayload := fiber.Map{"user_id": challengeResults.UserId}
+
+	if challengeResults.AccessToken != "" {
+		responsePayload["access_token"] = challengeResults.AccessToken
+	}
+
+	if challengeResults.RefreshToken != "" && challengeResults.Validator != "" {
+		responsePayload["refresh_token"] = fmt.Sprintf("%s:%s", challengeResults.RefreshToken, challengeResults.Validator)
+	}
+
+	return util.JSONResponse(context, fiber.StatusOK, responses.OKResponse(fiber.StatusOK, responsePayload))
 }
 
 func CreateOTPAuthMethodStart(context *fiber.Ctx) error {
