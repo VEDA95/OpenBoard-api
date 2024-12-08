@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/VEDA95/OpenBoard-API/internal/api/http/middleware"
 	"github.com/VEDA95/OpenBoard-API/internal/api/http/routes"
 	"github.com/VEDA95/OpenBoard-API/internal/api/http/validators"
 	"github.com/VEDA95/OpenBoard-API/internal/auth"
@@ -55,6 +56,7 @@ func main() {
 	registerGroup := mfaGroup.Group("/register")
 	challengeGroup := mfaGroup.Group("/challenge")
 
+	userGroup.Use(middleware.AuthMiddleware)
 	userGroup.Get("/", routes.ShowUsers)
 	userGroup.Post("/", routes.CreateUser)
 	userGroup.Get("/:id", routes.ShowUser)
@@ -62,6 +64,8 @@ func main() {
 	userGroup.Delete("/:id", routes.DeleteUser)
 	authGroup.Post("/login", routes.LocalLogin)
 	authGroup.Get("/@me", routes.Me)
+	authGroup.Post("/refresh", routes.LocalRefresh)
+	authGroup.Post("/logout", routes.LocalLogout)
 	mfaGroup.Get("/methods", routes.GETMFAMethods)
 	mfaGroup.Post("/methods", routes.SelectMFAMethod)
 	registerGroup.Post("/webauthn/create", routes.CreateWebAuthnAuthMethodStart)
