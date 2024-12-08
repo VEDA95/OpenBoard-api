@@ -281,3 +281,24 @@ func SelectMFAMethod(context *fiber.Ctx) error {
 		Message: "Auth challenge type has been selected...",
 	}))
 }
+
+func LocalRefresh(context *fiber.Ctx) error {
+	token, err := auth.ExtractSessionToken(context, "open_board_session")
+
+	if err != nil {
+		return err
+	}
+
+	providerInterface := *auth.Instance.GetProvider("local")
+	refreshResults, err := providerInterface.Refresh(util.Payload{"token": token})
+
+	if err != nil {
+		return err
+	}
+
+	return util.JSONResponse(context, fiber.StatusOK, responses.OKResponse(fiber.StatusOK, fiber.Map{
+		"access_token":  refreshResults.AccessToken,
+		"refresh_token": fmt.Sprintf("%s:%s", refreshResults.RefreshToken, refreshResults.Validator),
+		"user_id":       refreshResults.UserId,
+	}))
+}

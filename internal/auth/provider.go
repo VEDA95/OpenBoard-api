@@ -8,6 +8,7 @@ import (
 type ProviderInterface interface {
 	Login(payload util.Payload) (*ProviderAuthResult, error)
 	Logout(payload util.Payload) error
+	Refresh(payload util.Payload) (*ProviderAuthResult, error)
 	GetUser(payload util.Payload) (*User, error)
 	GetUsers(payload util.Payload) (*[]User, error)
 }

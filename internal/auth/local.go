@@ -179,6 +179,22 @@ func (localAuthProvider *LocalAuthProvider) Logout(payload util.Payload) error {
 	return nil
 }
 
+func (localAuthProvider *LocalAuthProvider) Refresh(payload util.Payload) (*ProviderAuthResult, error) {
+	token, ok := payload["token"].(string)
+
+	if !ok {
+		return nil, errors.New("invalid token")
+	}
+
+	refreshResults, err := RefreshAuthSession(token)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return refreshResults, nil
+}
+
 func (localAuthProvider *LocalAuthProvider) GetUser(payload util.Payload) (*User, error) {
 	columns, ok := payload["columns"].([]interface{})
 
