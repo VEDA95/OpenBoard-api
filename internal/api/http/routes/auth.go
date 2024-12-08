@@ -1,6 +1,7 @@
 package routes
 
 import (
+	"fmt"
 	"github.com/VEDA95/OpenBoard-API/internal/api/http/responses"
 	"github.com/VEDA95/OpenBoard-API/internal/api/http/validators"
 	"github.com/VEDA95/OpenBoard-API/internal/auth"
@@ -50,7 +51,13 @@ func LocalLogin(context *fiber.Ctx) error {
 			})
 
 		} else {
-			authResponse = responses.OKResponse(fiber.StatusOK, authResults)
+			responsePayload := fiber.Map{"access_token": authResults.AccessToken, "mfa_required": authResults.MFARequired}
+
+			if validatorData.RememberMe {
+				responsePayload["refresh_token"] = fmt.Sprintf("%s:%s", authResults.RefreshToken, authResults.Validator)
+			}
+
+			authResponse = responses.OKResponse(fiber.StatusOK, responsePayload)
 		}
 
 		return util.JSONResponse(context, fiber.StatusOK, authResponse)
@@ -75,6 +82,16 @@ func LocalLogin(context *fiber.Ctx) error {
 			HTTPOnly: true,
 			Secure:   false,
 		})
+
+		if cookieName == "open_board_session" && validatorData.RememberMe {
+			context.Cookie(&fiber.Cookie{
+				Name:     "remember_me",
+				Value:    fmt.Sprintf("%s:%s", authResults.RefreshToken, authResults.Validator),
+				Domain:   "localhost:8080",
+				HTTPOnly: true,
+				Secure:   false,
+			})
+		}
 	}
 
 	return nil
