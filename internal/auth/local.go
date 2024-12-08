@@ -176,6 +176,21 @@ func (localAuthProvider *LocalAuthProvider) Login(payload util.Payload) (*Provid
 }
 
 func (localAuthProvider *LocalAuthProvider) Logout(payload util.Payload) error {
+	token, ok := payload["token"].(string)
+
+	if !ok {
+		return errors.New("token is missing")
+	}
+
+	deleteSessionQuery := db.Instance.From("open_board_user_session").Prepared(true).
+		Delete().
+		Where(goqu.Ex{"access_token": token}).
+		Executor()
+
+	if _, err := deleteSessionQuery.Exec(); err != nil {
+		return err
+	}
+
 	return nil
 }
 

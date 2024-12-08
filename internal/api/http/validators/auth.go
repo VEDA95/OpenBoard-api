@@ -20,3 +20,7 @@ type OTPValidator struct {
 type AuthenticatorValidator struct {
 	Passcode string `json:"passcode" validate:"required,min=6,max=32"`
 }
+
+type LogoutValidator struct {
+	ReturnType string `json:"return_type,omitempty" validate:"omitempty,min=1,max=7,oneof=token session"`
+}

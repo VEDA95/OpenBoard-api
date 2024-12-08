@@ -302,3 +302,34 @@ func LocalRefresh(context *fiber.Ctx) error {
 		"user_id":       refreshResults.UserId,
 	}))
 }
+
+func LocalLogout(context *fiber.Ctx) error {
+	token, err := auth.ExtractSessionToken(context, "open_board_session")
+
+	if err != nil {
+		return err
+	}
+
+	validatorData := new(validators.LogoutValidator)
+
+	if err := context.BodyParser(validatorData); err != nil {
+		return err
+	}
+
+	if errs := validators.Instance.Validate(validatorData); len(errs) > 0 {
+		return util.CreateValidationError(errs)
+	}
+
+	providerInterface := *auth.Instance.GetProvider("local")
+
+	if err := providerInterface.Logout(util.Payload{"token": token}); err != nil {
+		return err
+	}
+
+	if validatorData.ReturnType == "session" {
+		context.ClearCookie("open_board_session")
+		context.ClearCookie("remember_me")
+	}
+
+	return util.JSONResponse(context, fiber.StatusOK, fiber.Map{})
+}
