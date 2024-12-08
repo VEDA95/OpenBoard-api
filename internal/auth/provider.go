@@ -15,6 +15,7 @@ type ProviderInterface interface {
 type ProviderAuthResult struct {
 	AccessToken  string `json:"access_token,omitempty"`
 	RefreshToken string `json:"refresh_token,omitempty"`
+	Validator    string `json:"validator,omitempty"`
 	UserId       string `json:"user_id,omitempty"`
 	MFARequired  bool   `json:"-"`
 }

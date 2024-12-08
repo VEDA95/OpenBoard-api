@@ -33,13 +33,13 @@ type MultiAuthMethod struct {
 }
 
 type MultiAuthChallenge struct {
-	Id          string                 `db:"id"`
-	DateCreated time.Time              `db:"date_created"`
-	DateUpdated time.Time              `db:"date_updated"`
-	ExpiresOn   time.Time              `db:"expires_on"`
-	User        User                   `db:"user"`
-	AuthMethod  *MultiAuthMethod       `db:"auth_method,omitempty"`
-	Data        map[string]interface{} `db:"data,omitempty"`
+	Id          string           `db:"id"`
+	DateCreated time.Time        `db:"date_created"`
+	DateUpdated time.Time        `db:"date_updated"`
+	ExpiresOn   time.Time        `db:"expires_on"`
+	User        User             `db:"user"`
+	AuthMethod  *MultiAuthMethod `db:"auth_method,omitempty"`
+	Data        util.Payload     `db:"data,omitempty"`
 }
 
 var MultiAuthMethods *MultiAuthMethodStore

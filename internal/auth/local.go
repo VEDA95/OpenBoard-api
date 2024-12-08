@@ -90,27 +90,53 @@ func (localAuthProvider *LocalAuthProvider) Login(payload util.Payload) (*Provid
 	settingsInterface := *settings.Instance.GetSettings("auth")
 	authSettings := settingsInterface.(*settings.AuthSettings)
 	tokenLifetime := now.Local().Add(time.Duration(authSettings.AccessTokenLifetime))
+	rememberMe := payload["remember_me"].(bool)
 	var sessionQuery exec.QueryExecutor
+	var MFARequired bool
+	var refreshCredentials *RefreshCredentials
 
-	if authSettings.MultiAuthEnabled {
+	if rememberMe {
+		credentials, err := CreateRefreshCredentials()
+
+		if err != nil {
+			return nil, err
+		}
+
+		refreshCredentials = credentials
+	}
+
+	if authSettings.MultiAuthEnabled && authMethodCount > 0 {
+		MFARequired = true
 		sessionQuery = transaction.From("open_board_multi_auth_challenge").Prepared(true).
 			Insert().
 			Rows(goqu.Record{
 				"id":         token,
 				"user_id":    user.Id,
 				"expires_on": tokenLifetime,
+				"data":       util.Payload{"remember_me": rememberMe},
 			}).
 			Executor()
 
 	} else {
-		sessionQuery = transaction.From("open_board_user_session").Prepared(true).Insert().Rows(goqu.Record{
+		MFARequired = false
+		sessionPayload := goqu.Record{
 			"user_id":      user.Id,
 			"access_token": token,
 			"expires_on":   tokenLifetime,
 			"ip_address":   payload["ip_address"].(string),
 			"user_agent":   payload["user_agent"].(string),
-			"remember_me":  payload["remember_me"].(bool),
-		}).Executor()
+			"remember_me":  rememberMe,
+		}
+
+		if rememberMe {
+			sessionPayload["refresh_token"] = refreshCredentials.Selector
+			sessionPayload["additional_info"] = util.Payload{"hashed_validator": refreshCredentials.HashedValidator}
+		}
+
+		sessionQuery = transaction.From("open_board_user_session").Prepared(true).
+			Insert().
+			Rows(sessionPayload).
+			Executor()
 	}
 
 	updateUserQuery := transaction.From("open_board_user").Prepared(true).
@@ -139,7 +165,14 @@ func (localAuthProvider *LocalAuthProvider) Login(payload util.Payload) (*Provid
 		return nil, err
 	}
 
-	return &ProviderAuthResult{AccessToken: token, UserId: user.Id, MFARequired: true}, nil
+	authResults := &ProviderAuthResult{AccessToken: token, UserId: user.Id, MFARequired: MFARequired}
+
+	if rememberMe {
+		authResults.RefreshToken = refreshCredentials.Selector
+		authResults.Validator = refreshCredentials.Validator
+	}
+
+	return authResults, nil
 }
 
 func (localAuthProvider *LocalAuthProvider) Logout(payload util.Payload) error {

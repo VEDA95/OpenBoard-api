@@ -48,7 +48,7 @@ func (webAuthnMultiAuth *WebAuthnMultiAuth) CreateAuthChallenge(challengeType st
 
 	var challenge MultiAuthChallenge
 	_, err := db.Instance.From("open_board_multi_auth_challenge").Prepared(true).
-		Select("open_user", "auth_method").
+		Select("open_user", "auth_method", "data").
 		Join(goqu.T("open_board_user"), goqu.On(goqu.Ex{
 			"open_board_multi_auth_challenge.user_id": "open_board_user.id",
 		})).
@@ -74,8 +74,9 @@ func (webAuthnMultiAuth *WebAuthnMultiAuth) CreateAuthChallenge(challengeType st
 			return nil, err
 		}
 
+		challenge.Data["webauthn_session"] = session
 		outputPayload["options"] = options
-		updatePayload["data"] = map[string]interface{}{"webauthn_session": session}
+		updatePayload["data"] = challenge.Data
 
 	} else if challengeType == "login" {
 		if challenge.AuthMethod == nil || challenge.AuthMethod.Type != "webauthn" {
@@ -88,8 +89,9 @@ func (webAuthnMultiAuth *WebAuthnMultiAuth) CreateAuthChallenge(challengeType st
 			return nil, err
 		}
 
+		challenge.Data["webauthn_session"] = session
 		outputPayload["options"] = options
-		updatePayload["data"] = map[string]interface{}{"webauthn_session": session}
+		updatePayload["data"] = challenge.Data
 
 	} else {
 		return nil, errors.New("invalid challenge type")
@@ -237,7 +239,29 @@ func (webAuthnMultiAuth *WebAuthnMultiAuth) VerifyAuthChallenge(challengeType st
 		return nil, err
 	}
 
+	var refreshCredentials *RefreshCredentials
 	now := time.Now()
+	rememberMe := challenge.Data["remember_me"].(bool)
+	sessionPayload := goqu.Record{
+		"user_id":      challenge.User.Id,
+		"expires_on":   now.Local().Add(time.Duration(authSettings.AccessTokenLifetime)),
+		"access_token": sessionToken,
+		"user_agent":   userAgent,
+		"ip_address":   ipAddress,
+	}
+
+	if rememberMe {
+		credentials, err := CreateRefreshCredentials()
+
+		if err != nil {
+			return nil, err
+		}
+
+		sessionPayload["refresh_token"] = credentials.Selector
+		sessionPayload["additional_info"] = util.Payload{"hashed_validator": credentials.HashedValidator}
+		refreshCredentials = credentials
+	}
+
 	authMethodQuery = transaction.From("open_board_multi_auth_method").Prepared(true).
 		Update().
 		Where(goqu.Ex{"id": challenge.AuthMethod.Id}).
@@ -245,13 +269,7 @@ func (webAuthnMultiAuth *WebAuthnMultiAuth) VerifyAuthChallenge(challengeType st
 		Executor()
 	sessionQuery := transaction.From("open_board_user_session").Prepared(true).
 		Insert().
-		Rows(goqu.Record{
-			"user_id":      challenge.User.Id,
-			"expires_on":   now.Local().Add(time.Duration(authSettings.AccessTokenLifetime)),
-			"access_token": sessionToken,
-			"user_agent":   userAgent,
-			"ip_address":   ipAddress,
-		}).
+		Rows().
 		Executor()
 	updateUserQuery := transaction.From("open_board_user").Prepared(true).
 		Where(goqu.Ex{"id": challenge.User.Id}).
@@ -299,5 +317,12 @@ func (webAuthnMultiAuth *WebAuthnMultiAuth) VerifyAuthChallenge(challengeType st
 		return nil, err
 	}
 
-	return &ProviderAuthResult{AccessToken: sessionToken, UserId: challenge.User.Id}, nil
+	authResults := ProviderAuthResult{AccessToken: sessionToken, UserId: challenge.User.Id}
+
+	if rememberMe {
+		authResults.RefreshToken = refreshCredentials.Selector
+		authResults.Validator = refreshCredentials.Validator
+	}
+
+	return &authResults, nil
 }

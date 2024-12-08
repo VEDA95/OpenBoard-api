@@ -24,11 +24,13 @@ CREATE TABLE "open_board_user_session" (
    "date_created" TIMESTAMP NOT NULL DEFAULT (now()),
    "date_updated" TIMESTAMP,
    "expires_on" TIMESTAMP NOT NULL,
+   "session_type" VARCHAR(32) NOT NULL,
    "remember_me" BOOLEAN NOT NULL DEFAULT (false),
    "access_token" TEXT UNIQUE,
    "refresh_token" TEXT UNIQUE,
    "ip_address" VARCHAR(255) NOT NULL,
-   "user_agent" VARCHAR(255) NOT NULL
+   "user_agent" VARCHAR(255) NOT NULL,
+   "additional_info" JSONB
 );
 
 CREATE TABLE "open_board_external_auth_provider" (
