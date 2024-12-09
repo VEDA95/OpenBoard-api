@@ -9,6 +9,7 @@ import (
 	"github.com/doug-martin/goqu/v9"
 	"github.com/gofiber/fiber/v2"
 	"strings"
+	"time"
 )
 
 var defaultUserColumns = []interface{}{
@@ -213,4 +214,194 @@ func Me(context *fiber.Ctx) error {
 	}
 
 	return util.JSONResponse(context, fiber.StatusOK, responses.OKResponse(fiber.StatusOK, user))
+}
+
+func PasswordResetUnlock(context *fiber.Ctx) error {
+	token, err := auth.ExtractSessionToken(context, "open_board_session")
+
+	if err != nil {
+		return err
+	}
+
+	var user auth.User
+	exists, err := db.Instance.From("open_board_user_session").Prepared(true).
+		Select("open_user.id", "open_user.external_provider_id", "open_user.hashed_password").
+		Join(goqu.T("open_board_user"), goqu.On(goqu.Ex{
+			"open_board_user_session.user_id": "open_board_user.id",
+		})).
+		As("open_user").
+		Where(goqu.Ex{"access_token": token}).
+		ScanStruct(&user)
+
+	if err != nil {
+		return err
+	}
+
+	if !exists {
+		return fiber.NewError(fiber.StatusNotFound, "User does not exist")
+	}
+
+	if *user.ExternalProviderID != "" {
+		return fiber.NewError(fiber.StatusConflict, "Password cannot be set for user")
+	}
+
+	validatorData := new(validators.PasswordResetUnlockValidator)
+
+	if err := context.BodyParser(validatorData); err != nil {
+		return err
+	}
+
+	if errs := validators.Instance.Validate(validatorData); len(errs) > 0 {
+		return util.CreateValidationError(errs)
+	}
+
+	match, err := auth.VerifyPassword(*user.HashedPassword, validatorData.Password)
+
+	if err != nil {
+		return err
+	}
+
+	if !match {
+		return fiber.NewError(fiber.StatusConflict, "Password is incorrect")
+	}
+
+	resetToken, err := auth.CreateSessionToken()
+
+	if err != nil {
+		return err
+	}
+
+	tokenExpirationTime := time.Now().Add(time.Minute * 5)
+	createResetTokenQuery := db.Instance.From("open_board_user_password_reset_token").Prepared(true).
+		Insert().
+		Rows(goqu.Record{
+			"id":         resetToken,
+			"user_id":    user.Id,
+			"expires_on": tokenExpirationTime,
+		}).
+		Executor()
+
+	if _, err := createResetTokenQuery.Exec(); err != nil {
+		return err
+	}
+
+	passwordResetMessage := "Password reset token has been set"
+
+	if validatorData.ReturnType == "session" {
+		context.Cookie(&fiber.Cookie{
+			Name:     "open_board_password_reset_token",
+			Value:    resetToken,
+			Domain:   "localhost:8080",
+			HTTPOnly: true,
+			Secure:   false,
+			Expires:  tokenExpirationTime,
+		})
+
+		return util.JSONResponse(context, fiber.StatusOK, responses.GenericMessage{Message: passwordResetMessage})
+	}
+
+	return util.JSONResponse(context, fiber.StatusOK, fiber.Map{"message": passwordResetMessage, "token": resetToken})
+}
+
+func PasswordReset(context *fiber.Ctx) error {
+	validatorData := new(validators.PasswordResetValidator)
+	resetTokenCookie := context.Cookies("open_board_password_reset_token")
+
+	if err := context.BodyParser(validatorData); err != nil {
+		return err
+	}
+
+	if errs := validators.Instance.Validate(validatorData); len(errs) > 0 {
+		return util.CreateValidationError(errs)
+	}
+
+	if resetTokenCookie == "" && validatorData.Token == "" {
+		return fiber.NewError(fiber.StatusBadRequest, "reset token is invalid")
+	}
+
+	var resetToken string
+	var resetTokenQuery auth.PasswordResetToken
+
+	if validatorData.Token != "" {
+		resetToken = validatorData.Token
+
+	} else {
+		resetToken = resetTokenCookie
+	}
+
+	exists, err := db.Instance.From("open_board_user_password_reset_token").Prepared(true).
+		Select("expires_on", "user_id").
+		Where(goqu.Ex{"id": resetToken}).
+		ScanStruct(&resetTokenQuery)
+
+	if err != nil {
+		return err
+	}
+
+	if !exists {
+		return fiber.NewError(fiber.StatusNotFound, "reset token is invalid")
+	}
+
+	now := time.Now()
+
+	if now.After(resetTokenQuery.ExpiresOn) {
+		return fiber.NewError(fiber.StatusBadRequest, "reset token is invalid")
+	}
+
+	NewHashedPassword, err := auth.HashPassword(validatorData.Password)
+
+	if err != nil {
+		return err
+	}
+
+	transaction, err := db.Instance.Begin()
+
+	if err != nil {
+		return err
+	}
+
+	updateUserQuery := db.Instance.From("open_board_user").Prepared(true).
+		Update().
+		Set(goqu.Record{
+			"date_updated":    now,
+			"hashed_password": NewHashedPassword,
+		}).
+		Where(goqu.Ex{"id": resetTokenQuery.UserId}).
+		Executor()
+	removeSessionsQuery := db.Instance.From("open_board_session").Prepared(true).
+		Delete().
+		Where(goqu.Ex{"user_id": resetTokenQuery.UserId}).
+		Executor()
+
+	if _, err := updateUserQuery.Exec(); err != nil {
+		if err := transaction.Rollback(); err != nil {
+			return err
+		}
+
+		return err
+	}
+
+	if _, err := removeSessionsQuery.Exec(); err != nil {
+		if err := transaction.Rollback(); err != nil {
+			return err
+		}
+
+		return err
+	}
+
+	if err := transaction.Commit(); err != nil {
+		return err
+	}
+
+	sessionCookie := context.Cookies("open_board_session")
+
+	if sessionCookie != "" {
+		context.ClearCookie("open_board_session")
+	}
+
+	if resetTokenCookie != "" {
+		context.ClearCookie("open_board_reset_token")
+	}
+
+	return util.JSONResponse(context, fiber.StatusOK, responses.GenericMessage{Message: "Password has been reset"})
 }

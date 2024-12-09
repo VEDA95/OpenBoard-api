@@ -3,16 +3,24 @@ package auth
 import (
 	"errors"
 	"github.com/alexedwards/argon2id"
+	"time"
 )
 
-func HashPassword(password string) (*string, error) {
+type PasswordResetToken struct {
+	Id          string    `json:"id" db:"id,omitempty"`
+	UserId      string    `json:"user_id" db:"user_id,omitempty"`
+	DateCreated time.Time `json:"date_created" db:"date_created,omitempty"`
+	ExpiresOn   time.Time `json:"expires_on" db:"expires_on,omitempty"`
+}
+
+func HashPassword(password string) (string, error) {
 	hash, err := argon2id.CreateHash(password, argon2id.DefaultParams)
 
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 
-	return &hash, nil
+	return hash, nil
 }
 
 func VerifyPassword(hash string, password string) (bool, error) {

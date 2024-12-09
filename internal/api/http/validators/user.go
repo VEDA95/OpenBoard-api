@@ -18,12 +18,13 @@ type UserUpdate struct {
 	DarkMode  *bool   `json:"dark_mode,omitempty" default:"false"`
 }
 
-type PasswordConfirmationPrompt struct {
-	Password string `json:"password" validate:"required,min=8"`
+type PasswordResetUnlockValidator struct {
+	Password   string `json:"password" validate:"required,min=8"`
+	ReturnType string `json:"return_type,omitempty" validate:"omitempty,oneof=token session"`
 }
 
-type PasswordUpdate struct {
-	ResetToken      string `json:"reset_token" validate:"required,min=1"`
+type PasswordResetValidator struct {
 	Password        string `json:"password" validate:"required,min=8"`
 	ConfirmPassword string `json:"confirm_password" validate:"required,min=8,eqfield=Password"`
+	Token           string `json:"token,omitempty" validate:"min=8,max=32"`
 }
