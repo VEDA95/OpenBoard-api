@@ -68,6 +68,8 @@ func handleOTPEnd(context *fiber.Ctx, challengeType string) error {
 		responsePayload["refresh_token"] = fmt.Sprintf("%s:%s", challengeResults.RefreshToken, challengeResults.Validator)
 	}
 
+	context.ClearCookie("open_board_mfa_challenge")
+
 	return util.JSONResponse(context, fiber.StatusOK, responses.OKResponse(fiber.StatusOK, responsePayload))
 }
 
