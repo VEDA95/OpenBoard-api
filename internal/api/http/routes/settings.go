@@ -13,11 +13,11 @@ func SettingsGET(context *fiber.Ctx) error {
 	settingsName := context.Params("name")
 	validationParamData := validators.SettingsParamsValidator{Name: settingsName}
 
-	if errs := validators.Instance.Validate(validationParamData); len(errs) > 0 {
+	if errs := validators.Instance.Validate(&validationParamData); len(errs) > 0 {
 		return util.CreateValidationError(errs)
 	}
 
-	settingsInterface := settings.Instance.GetSettings(validationParamData.Name)
+	settingsInterface := *settings.Instance.GetSettings(validationParamData.Name)
 
 	if settingsInterface == nil {
 		return errors.New(fmt.Sprintf("settings: %s could not be found", validationParamData.Name))
@@ -30,7 +30,7 @@ func SettingsPUT(context *fiber.Ctx) error {
 	settingsName := context.Params("name")
 	validationParamData := validators.SettingsParamsValidator{Name: settingsName}
 
-	if errs := validators.Instance.Validate(validationParamData); len(errs) > 0 {
+	if errs := validators.Instance.Validate(&validationParamData); len(errs) > 0 {
 		return util.CreateValidationError(errs)
 	}
 
@@ -46,11 +46,11 @@ func SettingsPUT(context *fiber.Ctx) error {
 	case *settings.AuthSettings:
 		validationData := new(settings.AuthSettings)
 
-		if err := context.BodyParser(validationData); err != nil {
+		if err := context.BodyParser(&validationData); err != nil {
 			return err
 		}
 
-		if errs := validators.Instance.Validate(validationData); len(errs) > 0 {
+		if errs := validators.Instance.Validate(&validationData); len(errs) > 0 {
 			return util.CreateValidationError(errs)
 		}
 
@@ -100,11 +100,11 @@ func SettingsPUT(context *fiber.Ctx) error {
 	case *settings.NotificationSettings:
 		validationData := new(settings.NotificationSettings)
 
-		if err := context.BodyParser(validationData); err != nil {
+		if err := context.BodyParser(&validationData); err != nil {
 			return err
 		}
 
-		if errs := validators.Instance.Validate(validationData); len(errs) > 0 {
+		if errs := validators.Instance.Validate(&validationData); len(errs) > 0 {
 			return util.CreateValidationError(errs)
 		}
 

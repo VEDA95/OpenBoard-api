@@ -56,7 +56,9 @@ func main() {
 	registerGroup := mfaGroup.Group("/register")
 	challengeGroup := mfaGroup.Group("/challenge")
 
-	userGroup.Use(middleware.AuthMiddleware)
+	apiGroup.Get("/settings/:name", routes.SettingsGET)
+	apiGroup.Put("/settings/:name", routes.SettingsPUT)
+	userGroup.Use(middleware.AuthenticationMiddleware)
 	userGroup.Get("/", routes.ShowUsers)
 	userGroup.Post("/", routes.CreateUser)
 	userGroup.Get("/:id", routes.ShowUser)
