@@ -22,6 +22,7 @@ type User struct {
 	Enabled              bool       `json:"enabled" default:"true" db:"enabled,omitempty"`
 	EmailVerified        bool       `json:"email_verified" default:"false" db:"email_verified,omitempty"`
 	ResetPasswordOnLogin bool       `json:"reset_password_on_login" default:"false" db:"reset_password_on_login,omitempty"`
+	Roles                []Role     `json:"roles" db:"-"`
 }
 
 func (user *User) WebAuthnID() []byte {

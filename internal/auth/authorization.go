@@ -9,6 +9,7 @@ import (
 type Role struct {
 	Id          string       `json:"id" db:"id,omitempty"`
 	Name        string       `json:"name" db:"name,omitempty"`
+	UserId      string       `json:"-" db:"user_id"`
 	Permissions []Permission `json:"permissions" db:"-"`
 }
 
@@ -77,7 +78,9 @@ func GetRoles() ([]Role, error) {
 	roleIds := make([]string, len(roles))
 
 	for _, role := range roles {
-		roleIds = append(roleIds, role.Id)
+		if !slices.Contains(roleIds, role.Id) {
+			roleIds = append(roleIds, role.Id)
+		}
 	}
 
 	permissions := make([]Permission, 0)
@@ -140,6 +143,109 @@ func GetRole(roleId string) (*Role, error) {
 	}
 
 	return &role, nil
+}
+
+func GetUserRoles(userId string) ([]Role, error) {
+	roles := make([]Role, 0)
+	err := db.Instance.From("open_board_user_roles").Prepared(true).
+		Select(goqu.C("role.id").As("id"), goqu.C("role.name").As("name")).
+		Where(goqu.Ex{"user_id": userId}).
+		Join(goqu.T("open_board_role"), goqu.On(goqu.Ex{
+			"open_board_user_roles.role_id": "open_board_role.id",
+		})).
+		As("role").
+		ScanStructs(&roles)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if len(roles) == 0 {
+		return roles, nil
+	}
+
+	roleIds := make([]string, len(roles))
+
+	for _, role := range roles {
+		if !slices.Contains(roleIds, role.Id) {
+			roleIds = append(roleIds, role.Id)
+		}
+	}
+
+	rolePermissions := make([]Permission, 0)
+	err2 := db.Instance.From("open_board_role_permissions").Prepared(true).
+		Select("role_id", goqu.C("permission.id").As("id"), goqu.C("permission.path").As("path")).
+		Where(goqu.Ex{"role_id": roleIds}).
+		Join(goqu.T("open_board_role_permission"), goqu.On(goqu.Ex{
+			"open_board_role_permissions.permission_id": "open_board_role_permission.id",
+		})).
+		As("permission").
+		ScanStructs(&rolePermissions)
+
+	if err2 != nil {
+		return nil, err2
+	}
+
+	for _, permission := range rolePermissions {
+		for index := range roles {
+			if permission.RoleId == roles[index].Id {
+				roles[index].Permissions = append(roles[index].Permissions, permission)
+			}
+		}
+	}
+
+	return roles, nil
+}
+
+func GetAllUserRoles() ([]Role, error) {
+	roles := make([]Role, 0)
+	err := db.Instance.From("open_board_user_roles").Prepared(true).
+		Select("user_id", goqu.C("role.id").As("id"), goqu.C("role.name").As("name")).
+		Join(goqu.T("open_board_role"), goqu.On(goqu.Ex{
+			"open_board_user_roles.role_id": "open_board_role.id",
+		})).
+		As("role").
+		ScanStructs(&roles)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if len(roles) == 0 {
+		return roles, nil
+	}
+
+	roleIds := make([]string, len(roles))
+
+	for _, role := range roles {
+		if !slices.Contains(roleIds, role.Id) {
+			roleIds = append(roleIds, role.Id)
+		}
+	}
+
+	rolePermissions := make([]Permission, 0)
+	err2 := db.Instance.From("open_board_role_permissions").Prepared(true).
+		Select("role_id", goqu.C("permission.id").As("id"), goqu.C("permission.path").As("path")).
+		Where(goqu.Ex{"role_id": roleIds}).
+		Join(goqu.T("open_board_role_permission"), goqu.On(goqu.Ex{
+			"open_board_role_permissions.permission_id": "open_board_role_permission.id",
+		})).
+		As("permission").
+		ScanStructs(&rolePermissions)
+
+	if err2 != nil {
+		return nil, err2
+	}
+
+	for _, permission := range rolePermissions {
+		for index := range roles {
+			if permission.RoleId == roles[index].Id {
+				roles[index].Permissions = append(roles[index].Permissions, permission)
+			}
+		}
+	}
+
+	return roles, nil
 }
 
 func GetBoardPermissions(boardId string) ([]Permission, error) {

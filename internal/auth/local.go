@@ -251,6 +251,14 @@ func (localAuthProvider *LocalAuthProvider) GetUser(payload util.Payload) (*User
 		return nil, errors.New("user not found")
 	}
 
+	userRoles, err := GetUserRoles(user.Id)
+
+	if err != nil {
+		return nil, err
+	}
+
+	user.Roles = userRoles
+
 	return &user, nil
 }
 
@@ -266,6 +274,21 @@ func (localAuthProvider *LocalAuthProvider) GetUsers(payload util.Payload) (*[]U
 
 	if err := usersQuery.ScanStructs(&users); err != nil {
 		return nil, err
+	}
+
+	usersRoles, err := GetAllUserRoles()
+
+	if err != nil {
+		return nil, err
+	}
+
+	for _, role := range usersRoles {
+		for index := range users {
+			if role.UserId == users[index].Id {
+				users[index].Roles = append(users[index].Roles, role)
+				break
+			}
+		}
 	}
 
 	return &users, nil
