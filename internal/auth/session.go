@@ -25,7 +25,7 @@ type AuthSession struct {
 	AdditionalInfo util.Payload `json:"-" db:"additional_info,omitempty"`
 }
 
-func CheckAuthSession(token string) error {
+func CheckAuthSession(token string) (*AuthSession, error) {
 	var sessionData AuthSession
 	exists, err := db.Instance.From("open_board_user_session").Prepared(true).
 		Select("*", "open_user").
@@ -37,24 +37,24 @@ func CheckAuthSession(token string) error {
 		ScanStruct(&sessionData)
 
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	if !exists {
-		return errors.New("session not found")
+		return nil, errors.New("session not found")
 	}
 
 	if !sessionData.User.Enabled {
-		return errors.New("user is disabled")
+		return nil, errors.New("user is disabled")
 	}
 
 	now := time.Now()
 
 	if now.After(sessionData.ExpiresOn) {
-		return errors.New("session expired")
+		return nil, errors.New("session expired")
 	}
 
-	return nil
+	return &sessionData, nil
 }
 
 func RefreshAuthSession(token string) (*ProviderAuthResult, error) {
