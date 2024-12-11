@@ -6,13 +6,13 @@ import (
 )
 
 type NotificationSettings struct {
-	SMTPServer   string `db:"smtp_server,omitempty"`
-	SMTPPort     int64  `db:"smtp_port,omitempty"`
-	SMTPUser     string `db:"smtp_user,omitempty"`
-	SMTPPassword string `db:"smtp_password,omitempty"`
-	Name         string `db:"name,omitempty"`
-	EmailAddress string `db:"email_address, omitempty"`
-	UseTLS       bool   `db:"use_tls"`
+	SMTPServer   string `db:"smtp_server,omitempty" validate:"url,omitempty"`
+	SMTPPort     int64  `db:"smtp_port,omitempty" validate:"hostname_port,omitempty"`
+	SMTPUser     string `db:"smtp_user,omitempty" validate:"username,omitempty"`
+	SMTPPassword string `db:"smtp_password,omitempty" validate:"password,omitempty"`
+	Name         string `db:"name,omitempty" validate:"alphanum,omitempty"`
+	EmailAddress string `db:"email_address, omitempty" validate:"email,omitempty"`
+	UseTLS       bool   `db:"use_tls" validate:"boolean, omitempty"`
 }
 
 func (notificationSettings *NotificationSettings) Load() error {

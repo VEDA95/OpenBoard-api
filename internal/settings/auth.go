@@ -6,14 +6,14 @@ import (
 )
 
 type AuthSettings struct {
-	AccessTokenLifetime      int64 `db:"access_token_lifetime"`
-	RefreshTokenLifetime     int64 `db:"refresh_token_lifetime"`
-	RefreshTokenIdleLifetime int64 `db:"refresh_token_idle_lifetime"`
-	MultiAuthEnabled         bool  `db:"multi_factor_auth_enabled"`
-	ForceMultiAuthEnabled    bool  `db:"force_multi_factor_auth"`
-	OTPEnabled               bool  `db:"otp_enabled"`
-	AuthenticatorEnabled     bool  `db:"authenticator_enabled"`
-	WebAuthnEnabled          bool  `db:"webauthn_enabled"`
+	AccessTokenLifetime      int64 `db:"access_token_lifetime" validate:"number,omitempty"`
+	RefreshTokenLifetime     int64 `db:"refresh_token_lifetime" validate:"number,omitempty"`
+	RefreshTokenIdleLifetime int64 `db:"refresh_token_idle_lifetime" validate:"number,omitempty"`
+	MultiAuthEnabled         bool  `db:"multi_factor_auth_enabled" validate:"boolean,omitempty"`
+	ForceMultiAuthEnabled    bool  `db:"force_multi_factor_auth" validate:"boolean,omitempty"`
+	OTPEnabled               bool  `db:"otp_enabled" validate:"boolean,omitempty"`
+	AuthenticatorEnabled     bool  `db:"authenticator_enabled" validate:"boolean,omitempty"`
+	WebAuthnEnabled          bool  `db:"webauthn_enabled" validate:"boolean,omitempty"`
 }
 
 func (authSettings *AuthSettings) Load() error {
