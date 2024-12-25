@@ -24,3 +24,25 @@ type AuthenticatorValidator struct {
 type LogoutValidator struct {
 	ReturnType string `json:"return_type,omitempty" validate:"omitempty,min=1,max=7,oneof=token session"`
 }
+
+type RoleIDValidator struct {
+	Id string `validate:"required,uuid4"`
+}
+
+type RoleValidator struct {
+	Name        string   `json:"name" validate:"required,min=1,max=32"`
+	Permissions []string `json:"permissions,omitempty" validate:"omitempty,uuid4"`
+}
+
+type RoleUpdateValidator struct {
+	Name        string   `json:"name,omitempty" validate:"omitempty,min=1,max=32"`
+	Permissions []string `json:"permissions,omitempty" validate:"omitempty,uuid4"`
+}
+
+type PermissionValidator struct {
+	Path string `json:"path" validate:"required,min=1,max=32"`
+}
+
+type PermissionUpdateValidator struct {
+	Path string `json:"path,omitempty" validate:"omitempty,min=1,max=32"`
+}

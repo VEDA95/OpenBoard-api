@@ -28,3 +28,12 @@ type PasswordResetValidator struct {
 	ConfirmPassword string `json:"confirm_password" validate:"required,min=8,eqfield=Password"`
 	Token           string `json:"token,omitempty" validate:"min=8,max=32"`
 }
+
+type UserIdParamValidator struct {
+	Id     string `json:"id" validate:"required,uuid4"`
+	RoleId string `validate:"omitempty,uuid4"`
+}
+
+type UserRolesUpdateValidator struct {
+	RoleIds []string `json:"ids" validate:"required,uuid4"`
+}

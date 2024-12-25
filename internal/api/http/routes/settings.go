@@ -94,6 +94,8 @@ func SettingsPUT(context *fiber.Ctx) error {
 			return err
 		}
 
+		settings.Instance.UpdateSettings(validationParamData.Name, authSettings)
+
 		output = authSettings
 		break
 
@@ -143,6 +145,8 @@ func SettingsPUT(context *fiber.Ctx) error {
 		if err != nil {
 			return err
 		}
+
+		settings.Instance.UpdateSettings(validationParamData.Name, notificationSettings)
 
 		output = notificationSettings
 		break

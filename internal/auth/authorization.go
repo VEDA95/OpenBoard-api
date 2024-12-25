@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"errors"
 	"github.com/VEDA95/OpenBoard-API/internal/db"
 	"github.com/doug-martin/goqu/v9"
 	"slices"
@@ -246,6 +247,35 @@ func GetAllUserRoles() ([]Role, error) {
 	}
 
 	return roles, nil
+}
+
+func GetPermissions() ([]Permission, error) {
+	permissions := make([]Permission, 0)
+	err := db.Instance.From("open_board_role_permission").Select("*").ScanStructs(&permissions)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return permissions, nil
+}
+
+func GetPermission(permissionId string) (*Permission, error) {
+	permission := new(Permission)
+	exists, err := db.Instance.From("open_board_role_permission").Prepared(true).
+		Select("*").
+		Where(goqu.Ex{"id": permissionId}).
+		ScanStruct(&permission)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if !exists {
+		return nil, errors.New("permission not found")
+	}
+
+	return permission, nil
 }
 
 func GetBoardPermissions(boardId string) ([]Permission, error) {
