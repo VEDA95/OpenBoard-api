@@ -22,23 +22,23 @@ func ErrorHandler(context *fiber.Ctx, err error) error {
 	errorString := err.Error()
 	runes := []rune(errorString)
 
-	if strings.Contains(string(runes[0]), "[") && strings.Contains(string(runes[len(runes)-1]), "]") {
-		var validationErrs []validators.ErrorResponse
+	if strings.Contains(string(runes[0]), "{") && strings.Contains(string(runes[len(runes)-1]), "}") {
+		validationErrs := make(validators.ErrorResponseMap)
 		err := json.Unmarshal([]byte(errorString), &validationErrs)
 
 		if err == nil {
 			return context.
 				Status(fiber.StatusUnprocessableEntity).
-				JSON(responses.ErrorCollectionResp[validators.ErrorResponse](fiber.StatusUnprocessableEntity, validationErrs))
+				JSON(responses.ErrorResp(fiber.StatusUnprocessableEntity, validationErrs))
 		}
 
 		errorString = err.Error()
 	}
 
-	return context.Status(code).JSON(responses.ErrorResp(code, errorString))
+	return context.Status(code).JSON(responses.ErrorRespMessage(code, errorString))
 }
 
-func CreateValidationError(errs []*validators.ErrorResponse) error {
+func CreateValidationError(errs validators.ErrorResponseMap) error {
 	serializedData, err := json.Marshal(errs)
 
 	if err != nil {
