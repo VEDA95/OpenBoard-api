@@ -30,7 +30,7 @@ func handleAuthenticatorStart(context *fiber.Ctx, challengeType string) error {
 		return util.JSONResponse(context, fiber.StatusOK, nil)
 	}
 
-	return util.JSONResponse(context, fiber.StatusOK, responses.OKResponse(fiber.StatusOK, challengeResults["qr_code"]))
+	return util.JSONResponse(context, fiber.StatusOK, responses.OKResponse(fiber.StatusOK, challengeResults))
 }
 
 func handleAuthenticatorEnd(context *fiber.Ctx, challengeType string) error {

@@ -12,6 +12,7 @@ import (
 	"github.com/VEDA95/OpenBoard-API/internal/settings"
 	"github.com/VEDA95/OpenBoard-API/internal/util"
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/cors"
 	"log"
 )
 
@@ -47,6 +48,12 @@ func main() {
 		ErrorHandler: util.ErrorHandler,
 	})
 
+	app.Use(cors.New(cors.Config{
+		AllowOrigins:     "http://localhost:3000",
+		AllowHeaders:     "Origin, Content-Type, Accept",
+		AllowCredentials: true,
+	}))
+
 	app.Get("/", routes.HelloWorld)
 
 	apiGroup := app.Group("/api")
@@ -55,19 +62,39 @@ func main() {
 	mfaGroup := authGroup.Group("/mfa")
 	registerGroup := mfaGroup.Group("/register")
 	challengeGroup := mfaGroup.Group("/challenge")
+	workspaceGroup := apiGroup.Group("/workspace")
+	boardGroup := apiGroup.Group("/board")
 
 	apiGroup.Get("/settings/:name", routes.SettingsGET)
 	apiGroup.Put("/settings/:name", routes.SettingsPUT)
+	apiGroup.Get("/roles", routes.RolesGET)
+	apiGroup.Get("/roles/:id", routes.RolesGETByID)
+	apiGroup.Post("/roles", routes.RolesPOST)
+	apiGroup.Put("/roles/:id", routes.RolesPUT)
+	apiGroup.Delete("/roles/:id", routes.RolesDELETE)
+	apiGroup.Get("/permissions", routes.PermissionsGET)
+	apiGroup.Get("/permissions/:id", routes.PermissionsGETByID)
+	apiGroup.Post("/permissions", routes.PermissionsPOST)
+	apiGroup.Put("/permissions/:id", routes.PermissionsPUT)
+	apiGroup.Delete("/permissions/:id", routes.PermissionsDELETE)
+	workspaceGroup.Get("/permissions", routes.WorkspacePermissionsGET)
+	boardGroup.Get("/permissions", routes.BoardPermissionsGET)
 	userGroup.Use(middleware.AuthenticationMiddleware)
 	userGroup.Get("/", routes.ShowUsers)
 	userGroup.Post("/", routes.CreateUser)
 	userGroup.Get("/:id", routes.ShowUser)
 	userGroup.Put("/:id", routes.UpdateUser)
 	userGroup.Delete("/:id", routes.DeleteUser)
+	userGroup.Get("/:id/roles", routes.UserRolesGET)
+	userGroup.Get(":id/roles/:role_id", routes.UserRolesGETByID)
+	userGroup.Put(":id/roles", routes.UserRolesPUT)
 	userGroup.Get("/@me", routes.Me)
+	userGroup.Get("/@me/roles", routes.MeRolesGET)
+	userGroup.Get("/@me/roles/:role_id", routes.MeRolesGETByID)
 	userGroup.Post("/@me/password/unlock", routes.PasswordResetUnlock)
 	userGroup.Post("/@me/password/reset", routes.PasswordReset)
 	authGroup.Post("/login", routes.LocalLogin)
+	authGroup.Post("/register", routes.RegisterUser)
 	authGroup.Post("/refresh", routes.LocalRefresh)
 	authGroup.Post("/logout", routes.LocalLogout)
 	mfaGroup.Get("/methods", routes.GETMFAMethods)

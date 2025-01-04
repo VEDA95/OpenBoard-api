@@ -71,12 +71,18 @@ func (otpMultiAuth *OTPMultiAuth) CreateAuthChallenge(challengeType string, payl
 	secondSettingsInterface := *settings.Instance.GetSettings("notification")
 	notificationSettings := secondSettingsInterface.(*settings.NotificationSettings)
 
-	if notificationSettings.SMTPServer == "" && notificationSettings.SMTPPort == 0 && notificationSettings.SMTPUser == "" && notificationSettings.SMTPPassword == "" {
+	if !notificationSettings.SMTPServer.Valid && !notificationSettings.SMTPPort.Valid && !notificationSettings.SMTPUser.Valid && !notificationSettings.SMTPPassword.Valid {
 		return nil, nil
 	}
 
+	emailAddress, err := notificationSettings.EmailAddress.Value()
+
+	if err != nil {
+		return nil, err
+	}
+
 	mailErr := email.Client.Send(
-		notificationSettings.EmailAddress,
+		emailAddress.(string),
 		[]string{challenge.User.Email},
 		"Open Board MFA verification",
 		fmt.Sprintf("Here is your One-time password for login: %s", otp),

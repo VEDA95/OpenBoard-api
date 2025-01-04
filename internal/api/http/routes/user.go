@@ -297,10 +297,16 @@ func PasswordResetUnlock(context *fiber.Ctx) error {
 			Expires:  tokenExpirationTime,
 		})
 
-		return util.JSONResponse(context, fiber.StatusOK, responses.GenericMessage{Message: passwordResetMessage})
+		return util.JSONResponse(context, fiber.StatusOK, responses.OKResponse(
+			fiber.StatusOK,
+			responses.GenericMessage{Message: passwordResetMessage},
+		))
 	}
 
-	return util.JSONResponse(context, fiber.StatusOK, fiber.Map{"message": passwordResetMessage, "token": resetToken})
+	return util.JSONResponse(context, fiber.StatusOK, responses.OKResponse(
+		fiber.StatusOK,
+		fiber.Map{"message": passwordResetMessage, "token": resetToken},
+	))
 }
 
 func PasswordReset(context *fiber.Ctx) error {
@@ -403,5 +409,8 @@ func PasswordReset(context *fiber.Ctx) error {
 		context.ClearCookie("open_board_reset_token")
 	}
 
-	return util.JSONResponse(context, fiber.StatusOK, responses.GenericMessage{Message: "Password has been reset"})
+	return util.JSONResponse(context, fiber.StatusOK, responses.OKResponse(
+		fiber.StatusOK,
+		responses.GenericMessage{Message: "Password has been reset"},
+	))
 }

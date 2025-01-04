@@ -1,8 +1,8 @@
 package routes
 
 import (
-	"errors"
 	"fmt"
+	"github.com/VEDA95/OpenBoard-API/internal/api/http/responses"
 	"github.com/VEDA95/OpenBoard-API/internal/api/http/validators"
 	"github.com/VEDA95/OpenBoard-API/internal/settings"
 	"github.com/VEDA95/OpenBoard-API/internal/util"
@@ -13,31 +13,31 @@ func SettingsGET(context *fiber.Ctx) error {
 	settingsName := context.Params("name")
 	validationParamData := validators.SettingsParamsValidator{Name: settingsName}
 
-	if errs := validators.Instance.Validate(&validationParamData); len(errs) > 0 {
+	if errs := validators.Instance.Validate(validationParamData); len(errs) > 0 {
 		return util.CreateValidationError(errs)
 	}
 
 	settingsInterface := *settings.Instance.GetSettings(validationParamData.Name)
 
 	if settingsInterface == nil {
-		return errors.New(fmt.Sprintf("settings: %s could not be found", validationParamData.Name))
+		return fiber.NewError(fiber.StatusNotFound, fmt.Sprintf("settings: %s could not be found", validationParamData.Name))
 	}
 
-	return util.JSONResponse(context, fiber.StatusOK, settingsInterface)
+	return util.JSONResponse(context, fiber.StatusOK, responses.OKResponse(fiber.StatusOK, settingsInterface))
 }
 
 func SettingsPUT(context *fiber.Ctx) error {
 	settingsName := context.Params("name")
 	validationParamData := validators.SettingsParamsValidator{Name: settingsName}
 
-	if errs := validators.Instance.Validate(&validationParamData); len(errs) > 0 {
+	if errs := validators.Instance.Validate(validationParamData); len(errs) > 0 {
 		return util.CreateValidationError(errs)
 	}
 
 	settingsInterface := *settings.Instance.GetSettings(validationParamData.Name)
 
 	if settingsInterface == nil {
-		return errors.New(fmt.Sprintf("settings: %s could not be found", validationParamData.Name))
+		return fiber.NewError(fiber.StatusNotFound, fmt.Sprintf("settings: %s could not be found", validationParamData.Name))
 	}
 
 	var output interface{}
@@ -50,7 +50,7 @@ func SettingsPUT(context *fiber.Ctx) error {
 			return err
 		}
 
-		if errs := validators.Instance.Validate(&validationData); len(errs) > 0 {
+		if errs := validators.Instance.Validate(validationData); len(errs) > 0 {
 			return util.CreateValidationError(errs)
 		}
 
@@ -106,7 +106,7 @@ func SettingsPUT(context *fiber.Ctx) error {
 			return err
 		}
 
-		if errs := validators.Instance.Validate(&validationData); len(errs) > 0 {
+		if errs := validators.Instance.Validate(validationData); len(errs) > 0 {
 			return util.CreateValidationError(errs)
 		}
 
@@ -153,5 +153,5 @@ func SettingsPUT(context *fiber.Ctx) error {
 
 	}
 
-	return util.JSONResponse(context, fiber.StatusOK, output)
+	return util.JSONResponse(context, fiber.StatusOK, responses.OKResponse(fiber.StatusOK, output))
 }

@@ -166,7 +166,7 @@ func SelectMFAMethod(context *fiber.Ctx) error {
 		return err
 	}
 
-	if errs := validators.Instance.Validate(&validatorData); errs != nil {
+	if errs := validators.Instance.Validate(validatorData); errs != nil {
 		return util.CreateValidationError(errs)
 	}
 
@@ -331,5 +331,147 @@ func LocalLogout(context *fiber.Ctx) error {
 		context.ClearCookie("remember_me")
 	}
 
-	return util.JSONResponse(context, fiber.StatusOK, fiber.Map{})
+	return util.JSONResponse(context, fiber.StatusOK, responses.OKResponse(fiber.StatusOK, fiber.Map{}))
+}
+
+func RegisterUser(context *fiber.Ctx) error {
+	validatorData := new(validators.UserRegisterValidator)
+
+	if err := context.BodyParser(&validatorData); err != nil {
+		return err
+	}
+
+	if err := validators.Instance.Validate(validatorData); err != nil {
+		return util.CreateValidationError(err)
+	}
+
+	userCount := 0
+	_, err := db.Instance.From("open_board_user").Prepared(true).
+		Select(goqu.COUNT("id")).
+		Where(goqu.Ex{"username": validatorData.Username}).
+		ScanVal(&userCount)
+
+	if err != nil {
+		return err
+	}
+
+	if userCount > 0 {
+		errorMap := make(validators.ErrorResponseMap)
+		errorMap["username"] = &validators.ErrorResponse{
+			FailedField: "username",
+			Tag:         "",
+			Value:       validatorData.Username,
+			ErrValue:    "The username provided has already been taken",
+		}
+
+		return util.CreateValidationError(errorMap)
+	}
+
+	hashedPassword, err := auth.HashPassword(validatorData.Password)
+
+	if err != nil {
+		return err
+	}
+
+	queryRecord := goqu.Record{
+		"username":        validatorData.Username,
+		"email":           validatorData.Email,
+		"hashed_password": hashedPassword,
+	}
+
+	if validatorData.FirstName != nil && len(*validatorData.FirstName) > 0 {
+		queryRecord["first_name"] = *validatorData.FirstName
+	}
+
+	if validatorData.LastName != nil && len(*validatorData.LastName) > 0 {
+		queryRecord["last_name"] = *validatorData.LastName
+	}
+
+	var user auth.User
+	createUserQuery := db.Instance.From("open_board_user").Prepared(true).
+		Insert().
+		Returning(defaultUserColumns...).
+		Rows(queryRecord).
+		Executor()
+
+	if _, err := createUserQuery.ScanStruct(&user); err != nil {
+		return err
+	}
+
+	sessionToken, err := auth.CreateSessionToken()
+
+	if err != nil {
+		return err
+	}
+
+	transaction, err := db.Instance.Begin()
+
+	if err != nil {
+		return err
+	}
+
+	now := time.Now()
+	settingsInterface := *settings.Instance.GetSettings("auth")
+	authSettings := settingsInterface.(*settings.AuthSettings)
+	tokenLifetime := now.Local().Add(time.Duration(authSettings.AccessTokenLifetime))
+	sessionPayload := goqu.Record{
+		"session_type": "local",
+		"user_id":      user.Id,
+		"access_token": sessionToken,
+		"expires_on":   tokenLifetime,
+		"ip_address":   context.IP(),
+		"user_agent":   string(context.Request().Header.UserAgent()[:]),
+		"remember_me":  false,
+	}
+	sessionQuery := transaction.From("open_board_user_session").Prepared(true).
+		Insert().
+		Rows(sessionPayload).
+		Executor()
+	updateUserQuery := transaction.From("open_board_user").Prepared(true).
+		Where(goqu.Ex{"id": user.Id}).
+		Update().
+		Set(goqu.Record{"last_login": now}).
+		Executor()
+
+	if _, err := updateUserQuery.Exec(); err != nil {
+		if err := transaction.Rollback(); err != nil {
+			return err
+		}
+
+		return err
+	}
+
+	if _, err := sessionQuery.Exec(); err != nil {
+		if err := transaction.Rollback(); err != nil {
+			return err
+		}
+
+		return err
+	}
+
+	if err := transaction.Commit(); err != nil {
+		return err
+	}
+
+	authResults := &auth.ProviderAuthResult{AccessToken: sessionToken, UserId: user.Id, MFARequired: false}
+
+	if validatorData.ReturnType == "token" {
+		return util.JSONResponse(context, fiber.StatusOK, responses.OKResponse(fiber.StatusOK, fiber.Map{
+			"access_token": authResults.AccessToken,
+			"mfa_required": authResults.MFARequired,
+		}))
+	}
+
+	if validatorData.ReturnType == "session" {
+		context.Status(fiber.StatusOK)
+		context.Cookie(&fiber.Cookie{
+			Name:     "open_board_session",
+			Value:    authResults.AccessToken,
+			Domain:   "localhost",
+			HTTPOnly: true,
+			Secure:   false,
+		})
+	}
+
+	return nil
 }

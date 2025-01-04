@@ -1,7 +1,6 @@
 package routes
 
 import (
-	"fmt"
 	"github.com/VEDA95/OpenBoard-API/internal/api/http/responses"
 	"github.com/VEDA95/OpenBoard-API/internal/api/http/validators"
 	"github.com/VEDA95/OpenBoard-API/internal/auth"
@@ -20,7 +19,7 @@ func RolesGET(context *fiber.Ctx) error {
 		return err
 	}
 
-	return util.JSONResponse(context, fiber.StatusOK, roles)
+	return util.JSONResponse(context, fiber.StatusOK, responses.OKCollectionResponse(fiber.StatusOK, roles))
 }
 
 func RolesGETByID(context *fiber.Ctx) error {
@@ -36,7 +35,7 @@ func RolesGETByID(context *fiber.Ctx) error {
 		return err
 	}
 
-	return util.JSONResponse(context, fiber.StatusOK, role)
+	return util.JSONResponse(context, fiber.StatusOK, responses.OKResponse(fiber.StatusOK, role))
 }
 
 func MeRolesGET(context *fiber.Ctx) error {
@@ -47,7 +46,7 @@ func MeRolesGET(context *fiber.Ctx) error {
 		return err
 	}
 
-	return util.JSONResponse(context, fiber.StatusOK, roles)
+	return util.JSONResponse(context, fiber.StatusOK, responses.OKCollectionResponse(fiber.StatusOK, roles))
 }
 
 func MeRolesGETByID(context *fiber.Ctx) error {
@@ -77,7 +76,7 @@ func MeRolesGETByID(context *fiber.Ctx) error {
 		return util.JSONResponse(context, fiber.StatusNotFound, responses.GenericMessage{Message: "role not found"})
 	}
 
-	return util.JSONResponse(context, fiber.StatusOK, role)
+	return util.JSONResponse(context, fiber.StatusOK, responses.OKResponse(fiber.StatusOK, role))
 }
 func UserRolesGET(context *fiber.Ctx) error {
 	validationParamData := validators.UserIdParamValidator{Id: context.Params("id")}
@@ -92,7 +91,7 @@ func UserRolesGET(context *fiber.Ctx) error {
 		return err
 	}
 
-	return util.JSONResponse(context, fiber.StatusOK, roles)
+	return util.JSONResponse(context, fiber.StatusOK, responses.OKCollectionResponse(fiber.StatusOK, roles))
 }
 
 func UserRolesGETByID(context *fiber.Ctx) error {
@@ -101,7 +100,7 @@ func UserRolesGETByID(context *fiber.Ctx) error {
 		RoleId: context.Params("role_id"),
 	}
 
-	if errs := validators.Instance.Validate(&validationParamData); errs != nil {
+	if errs := validators.Instance.Validate(validationParamData); errs != nil {
 		return util.CreateValidationError(errs)
 	}
 
@@ -124,7 +123,7 @@ func UserRolesGETByID(context *fiber.Ctx) error {
 		return util.JSONResponse(context, fiber.StatusNotFound, responses.GenericMessage{Message: "role not found"})
 	}
 
-	return util.JSONResponse(context, fiber.StatusOK, role)
+	return util.JSONResponse(context, fiber.StatusOK, responses.OKResponse(fiber.StatusOK, role))
 }
 
 func RolesPOST(context *fiber.Ctx) error {
@@ -134,7 +133,7 @@ func RolesPOST(context *fiber.Ctx) error {
 		return err
 	}
 
-	if errs := validators.Instance.Validate(&validationData); errs != nil {
+	if errs := validators.Instance.Validate(validationData); errs != nil {
 		return util.CreateValidationError(errs)
 	}
 
@@ -204,7 +203,7 @@ func RolesPOST(context *fiber.Ctx) error {
 		return dbErr2
 	}
 
-	return util.JSONResponse(context, fiber.StatusOK, role)
+	return util.JSONResponse(context, fiber.StatusOK, responses.OKResponse(fiber.StatusOK, role))
 }
 
 func RolesPUT(context *fiber.Ctx) error {
@@ -215,7 +214,7 @@ func RolesPUT(context *fiber.Ctx) error {
 		return err
 	}
 
-	if errs := validators.Instance.Validate(&validationParamData); errs != nil {
+	if errs := validators.Instance.Validate(validationParamData); errs != nil {
 		return util.CreateValidationError(errs)
 	}
 
@@ -257,7 +256,7 @@ func RolesPUT(context *fiber.Ctx) error {
 	}
 
 	if len(roleUpdatePayload) == 0 && len(permissionsToAdd) == 0 && len(permissionsToRemove) == 0 {
-		return util.JSONResponse(context, fiber.StatusOK, role)
+		return util.JSONResponse(context, fiber.StatusOK, responses.OKResponse(fiber.StatusOK, role))
 	}
 
 	transaction, err := db.Instance.Begin()
@@ -333,13 +332,13 @@ func RolesPUT(context *fiber.Ctx) error {
 		return err
 	}
 
-	return util.JSONResponse(context, fiber.StatusOK, updatedRole)
+	return util.JSONResponse(context, fiber.StatusOK, responses.OKResponse(fiber.StatusOK, updatedRole))
 }
 
 func RolesDELETE(context *fiber.Ctx) error {
 	validationParamData := validators.RoleIDValidator{Id: context.Params("id")}
 
-	if err := validators.Instance.Validate(&validationParamData); err != nil {
+	if err := validators.Instance.Validate(validationParamData); err != nil {
 		return util.CreateValidationError(err)
 	}
 
@@ -396,18 +395,18 @@ func RolesDELETE(context *fiber.Ctx) error {
 		return err
 	}
 
-	return util.JSONResponse(context, fiber.StatusOK, responses.GenericMessage{Message: fmt.Sprintf("Role: %s has deleted successfully", validationParamData.Id)})
+	return util.JSONResponse(context, fiber.StatusOK, responses.OKResponse(fiber.StatusOK, fiber.Map{}))
 }
 
 func UserRolesPUT(context *fiber.Ctx) error {
 	validationParamData := validators.UserIdParamValidator{Id: context.Params("id")}
 	validationData := new(validators.UserRolesUpdateValidator)
 
-	if err := validators.Instance.Validate(&validationParamData); err != nil {
+	if err := validators.Instance.Validate(validationParamData); err != nil {
 		return util.CreateValidationError(err)
 	}
 
-	if err := validators.Instance.Validate(&validationData); err != nil {
+	if err := validators.Instance.Validate(validationData); err != nil {
 		return util.CreateValidationError(err)
 	}
 
@@ -501,5 +500,5 @@ func UserRolesPUT(context *fiber.Ctx) error {
 		return err
 	}
 
-	return util.JSONResponse(context, fiber.StatusOK, updatedRoles)
+	return util.JSONResponse(context, fiber.StatusOK, responses.OKCollectionResponse(fiber.StatusOK, updatedRoles))
 }

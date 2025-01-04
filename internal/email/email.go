@@ -4,6 +4,7 @@ import (
 	"crypto/tls"
 	"github.com/VEDA95/OpenBoard-API/internal/settings"
 	"github.com/wneessen/go-mail"
+	"log"
 )
 
 type MailClient struct {
@@ -16,29 +17,62 @@ func NewMailClient() (*MailClient, error) {
 	settingsInterface := *settings.Instance.GetSettings("notification")
 	notificationSettings := settingsInterface.(*settings.NotificationSettings)
 
-	if notificationSettings.SMTPServer == "" && notificationSettings.SMTPPort == 0 && notificationSettings.SMTPUser == "" && notificationSettings.SMTPPassword == "" {
+	if !notificationSettings.SMTPServer.Valid && !notificationSettings.SMTPPort.Valid && !notificationSettings.SMTPUser.Valid && !notificationSettings.SMTPPassword.Valid {
 		return nil, nil
 	}
 
-	mailOptions := []mail.Option{
-		mail.WithSMTPAuth(mail.SMTPAuthPlain),
-		mail.WithUsername(notificationSettings.SMTPUser),
-		mail.WithPassword(notificationSettings.SMTPPassword),
+	SMTPUser, err := notificationSettings.SMTPUser.Value()
+
+	if err != nil {
+		return nil, err
 	}
 
-	if notificationSettings.SMTPPort > 0 {
-		mailOptions = append(mailOptions, mail.WithPort(int(notificationSettings.SMTPPort)))
+	SMTPPassword, err := notificationSettings.SMTPPassword.Value()
+
+	if err != nil {
+		return nil, err
 	}
+
+	log.Println("SMTP User: ", SMTPUser)
+	log.Println("SMTP Password: ", SMTPPassword)
+
+	mailOptions := []mail.Option{
+		mail.WithSMTPAuth(mail.SMTPAuthPlain),
+		mail.WithUsername(SMTPUser.(string)),
+		mail.WithPassword(SMTPPassword.(string)),
+	}
+
+	smtpPort, err := notificationSettings.SMTPPort.Value()
+
+	if err != nil {
+		return nil, err
+	}
+
+	SMTPPort := smtpPort.(int)
+
+	log.Println("SMTP Port: ", SMTPPort)
+
+	if SMTPPort > 0 {
+		mailOptions = append(mailOptions, mail.WithPort(SMTPPort))
+	}
+
+	smtpServer, err := notificationSettings.SMTPServer.Value()
+
+	if err != nil {
+		return nil, err
+	}
+
+	SMTPServer := smtpServer.(string)
 
 	if notificationSettings.UseTLS {
 		mailOptions = append(mailOptions, mail.WithTLSConfig(&tls.Config{
 			InsecureSkipVerify: true,
 			ClientAuth:         tls.NoClientCert,
-			ServerName:         notificationSettings.SMTPServer,
+			ServerName:         SMTPServer,
 		}))
 	}
 
-	client, err := mail.NewClient(notificationSettings.SMTPServer, mailOptions...)
+	client, err := mail.NewClient(SMTPServer, mailOptions...)
 
 	if err != nil {
 		return nil, err

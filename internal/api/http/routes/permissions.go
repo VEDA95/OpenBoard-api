@@ -1,7 +1,6 @@
 package routes
 
 import (
-	"fmt"
 	"github.com/VEDA95/OpenBoard-API/internal/api/http/responses"
 	"github.com/VEDA95/OpenBoard-API/internal/api/http/validators"
 	"github.com/VEDA95/OpenBoard-API/internal/auth"
@@ -18,7 +17,7 @@ func PermissionsGET(context *fiber.Ctx) error {
 		return err
 	}
 
-	return util.JSONResponse(context, fiber.StatusOK, permissions)
+	return util.JSONResponse(context, fiber.StatusOK, responses.OKCollectionResponse(fiber.StatusOK, permissions))
 }
 
 func PermissionsGETByID(context *fiber.Ctx) error {
@@ -34,7 +33,7 @@ func PermissionsGETByID(context *fiber.Ctx) error {
 		return err
 	}
 
-	return util.JSONResponse(context, fiber.StatusOK, permission)
+	return util.JSONResponse(context, fiber.StatusOK, responses.OKResponse(fiber.StatusOK, permission))
 }
 
 func WorkspacePermissionsGET(context *fiber.Ctx) error {
@@ -50,7 +49,7 @@ func WorkspacePermissionsGET(context *fiber.Ctx) error {
 		return err
 	}
 
-	return util.JSONResponse(context, fiber.StatusOK, permissions)
+	return util.JSONResponse(context, fiber.StatusOK, responses.OKCollectionResponse(fiber.StatusOK, permissions))
 }
 
 func BoardPermissionsGET(context *fiber.Ctx) error {
@@ -66,7 +65,7 @@ func BoardPermissionsGET(context *fiber.Ctx) error {
 		return err
 	}
 
-	return util.JSONResponse(context, fiber.StatusOK, permissions)
+	return util.JSONResponse(context, fiber.StatusOK, responses.OKCollectionResponse(fiber.StatusOK, permissions))
 }
 
 func PermissionsPOST(context *fiber.Ctx) error {
@@ -89,7 +88,10 @@ func PermissionsPOST(context *fiber.Ctx) error {
 		return err
 	}
 
-	return util.JSONResponse(context, fiber.StatusCreated, auth.Permission{Path: validationData.Path})
+	return util.JSONResponse(context, fiber.StatusCreated, responses.OKResponse(
+		fiber.StatusCreated,
+		auth.Permission{Path: validationData.Path},
+	))
 }
 
 func PermissionsPUT(context *fiber.Ctx) error {
@@ -100,11 +102,11 @@ func PermissionsPUT(context *fiber.Ctx) error {
 		return err
 	}
 
-	if err := validators.Instance.Validate(&validationParamData); err != nil {
+	if err := validators.Instance.Validate(validationParamData); err != nil {
 		return util.CreateValidationError(err)
 	}
 
-	if err := validators.Instance.Validate(&validationData); err != nil {
+	if err := validators.Instance.Validate(validationData); err != nil {
 		return util.CreateValidationError(err)
 	}
 
@@ -136,13 +138,13 @@ func PermissionsPUT(context *fiber.Ctx) error {
 
 	permission.Path = validationData.Path
 
-	return util.JSONResponse(context, fiber.StatusOK, permission)
+	return util.JSONResponse(context, fiber.StatusOK, responses.OKResponse(fiber.StatusOK, permission))
 }
 
 func PermissionsDELETE(context *fiber.Ctx) error {
 	validationParamData := validators.RoleIDValidator{Id: context.Params("id")}
 
-	if err := validators.Instance.Validate(&validationParamData); err != nil {
+	if err := validators.Instance.Validate(validationParamData); err != nil {
 		return util.CreateValidationError(err)
 	}
 
@@ -220,5 +222,5 @@ func PermissionsDELETE(context *fiber.Ctx) error {
 		return err
 	}
 
-	return util.JSONResponse(context, fiber.StatusOK, responses.GenericMessage{Message: fmt.Sprintf("Permission: %s was deleted successfully.", validationParamData.Id)})
+	return util.JSONResponse(context, fiber.StatusOK, responses.OKResponse(fiber.StatusOK, fiber.Map{}))
 }
